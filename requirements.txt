@@ -1,0 +1,9 @@
+numpy
+torch
+matplotlib
+blissclient
+blissdata
+h5py
+hdf5plugin
+torchvision
+Pillow
