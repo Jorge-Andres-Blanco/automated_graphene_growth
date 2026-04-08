@@ -13,8 +13,8 @@ def main():
     validation_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\validation_data")
 
 
-    hist = 15
-    step_size = 5
+    hist = 13
+    step_size = 7
     train = True
     model = TransitionModel(history=hist)
 
@@ -22,7 +22,7 @@ def main():
     if train:
         
         z_train, a_train, y_train = load_transition_data(train_data_path, step_size = step_size, hist_length = hist)
-        model, losses = train_transition_model(z_train, a_train, y_train, model=model, epochs=150, lr=1e-3, batch_size=64, save_model_as = "transition_model.pth")
+        model, losses = train_transition_model(z_train, a_train, y_train, model=model, epochs=50, lr=1e-3, batch_size=64, save_model_as = "transition_model.pth")
         plot_training_loss(losses)
     
     else:
