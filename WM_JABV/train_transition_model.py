@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from WM_JABV.transition_model import TransitionModel
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 
 def train_transition_model(z_data:np.ndarray, a_data:np.ndarray, y_data: np.ndarray,
@@ -90,4 +90,16 @@ def train_transition_model(z_data:np.ndarray, a_data:np.ndarray, y_data: np.ndar
         torch.save(model.state_dict(), save_model_as)
         print(f"Model saved as {save_model_as}")
 
-    return model
+    return model, losses
+
+
+def plot_training_loss(losses):
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(losses, label='Training Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('MSE Loss')
+    plt.title('Transition Model Training Loss')
+    plt.show()
+
+    return None

@@ -32,6 +32,7 @@ def evaluate_transition_model(model: TransitionModel, z_eval:np.ndarray, a_eval:
 
         l2_distances = torch.linalg.norm(y_pred - y_eval, dim = -1)
         cos_similarities = nn.functional.cosine_similarity(y_pred, y_eval, dim=-1)
+        mse_loss = nn.MSELoss()(y_pred, y_eval)
 
         # PCA
 
@@ -65,7 +66,7 @@ def evaluate_transition_model(model: TransitionModel, z_eval:np.ndarray, a_eval:
     plt.suptitle('Transition Model Evaluation')
     plt.show()
 
-    return l2_distances, cos_similarities
+    return l2_distances, cos_similarities, mse_loss.item()
 
 
 def evaluate_on_trajectory(model, z_traj, a_traj, y_traj):
@@ -86,7 +87,7 @@ def evaluate_on_trajectory(model, z_traj, a_traj, y_traj):
     
     h = model.history
     
-    z = z_traj[0].unsqueeze(0) # Shape (1,5,384)
+    z = z_traj[0].unsqueeze(0) # Shape (1,hist,384)
 
     with torch.no_grad():
     

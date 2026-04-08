@@ -9,7 +9,7 @@ def load_array_steps(file, step_size):
 
 
 
-def load_transition_data(folder_path, step_size, hist_length):
+def load_transition_data(folder_path, step_size, hist_length, return_indices = False):
 
     """
     ### Parameters:
@@ -32,7 +32,8 @@ def load_transition_data(folder_path, step_size, hist_length):
          raise ValueError(f"File count mismatch: {len(cls_files)} movie files vs {len(CH4_files)} CH4 files.")
 
     z_list, a_list, y_list = [], [], []
-
+    indices = []
+    index = 0
     for cls_file, CH4_file in zip(cls_files, CH4_files):
 
         #Safety check
@@ -43,8 +44,6 @@ def load_transition_data(folder_path, step_size, hist_length):
         data_CH4 = load_array_steps(CH4_file, step_size)
 
         N = data_cls.shape[0]
-
-        print(cls_file, CH4_file, data_cls.shape, data_CH4.shape)
 
         #Safety check
         if N != data_CH4.shape[0]:
@@ -62,5 +61,12 @@ def load_transition_data(folder_path, step_size, hist_length):
             z_list.append(z_0)
             a_list.append(a_0)
             y_list.append(z_1)
+
+        
+        indices.append((index, index+(N-hist_length)))
+        index = indices[-1][1]
+
+    if return_indices:
+        return np.array(z_list), np.array(a_list), np.array(y_list), indices
 
     return np.array(z_list), np.array(a_list), np.array(y_list)
