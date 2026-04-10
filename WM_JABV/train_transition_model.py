@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from WM_JABV.transition_model import TransitionModel
+from WM_JABV.transition_models import TransitionModel, EnsembleTransitionModel
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -103,3 +103,28 @@ def plot_training_loss(losses):
     plt.show()
 
     return None
+
+def train_ensemble_transition_model(z_data, a_data, y_data, ensemble_model: EnsembleTransitionModel, **kwargs):
+
+    """
+    Trains each model in the ensemble on the same data.
+
+    Parameters:
+        ensemble_model: the ensemble model to train
+        z_data shape (batch_size, history, latent_dim)
+        a_data shape (batch_size, history, action_dim)
+        y_data shape (batch_size, latent_dim)
+        epochs times to repeat the training loop
+        lr learning rate
+        batch_size batches in which the training data is divided
+    Returns:
+        trained ensemble model
+    """
+    losses = []
+
+    for i, model in enumerate(ensemble_model.models):
+        print(f"Training model {i+1}/{ensemble_model.num_models}")
+        model, loss = train_transition_model(z_data, a_data, y_data, model=model, save_model_as = f"transition_model_{i}.pth", **kwargs)
+        losses.append(loss)
+
+    return ensemble_model, np.array(losses)

@@ -1,9 +1,9 @@
 from pathlib import Path
 import torch
 from data_processing.data_loader import load_transition_data
-from WM_JABV.train_transition_model import train_transition_model, plot_training_loss
+import WM_JABV.train_transition_model as ttm
 import WM_JABV.evaluation as eval
-from WM_JABV.transition_model import TransitionModel
+from WM_JABV.transition_models import TransitionModel, EnsembleTransitionModel
 
 
 def main():
@@ -13,8 +13,8 @@ def main():
     validation_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\validation_data")
 
 
-    hist = 13
-    step_size = 7
+    hist = 15
+    step_size = 5
     train = True
     model = TransitionModel(history=hist)
 
@@ -22,8 +22,8 @@ def main():
     if train:
         
         z_train, a_train, y_train = load_transition_data(train_data_path, step_size = step_size, hist_length = hist)
-        model, losses = train_transition_model(z_train, a_train, y_train, model=model, epochs=50, lr=1e-3, batch_size=64, save_model_as = "transition_model.pth")
-        plot_training_loss(losses)
+        model, losses = ttm.train_transition_model(z_train, a_train, y_train, model=model, epochs=50, lr=1e-3, batch_size=64, save_model_as = "transition_model.pth")
+        ttm.plot_training_loss(losses)
     
     else:
     
