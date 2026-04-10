@@ -288,3 +288,39 @@ def evaluate_ensemble_on_trajectory(ensemble_model: EnsembleTransitionModel, z_t
     y_pred_pca = pca.transform(z_predicted_array)
 
     return (y_pca, y_pred_pca), l2_distances, cos_similarities
+
+
+def predict_next_steps(steps, model, z_init, a_seq):
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    model.to(device)
+    model.eval()
+
+    if isinstance(model, EnsembleTransitionModel):
+        predictions = torch.zeros((model.num_models, steps, 384)).to(device)
+    else:
+        predictions = torch.zeros((steps, 384)).to(device)
+
+    z_init = torch.from_numpy(z_init).float().to(device)
+    a_seq = torch.from_numpy(a_seq).float().to(device)
+
+    with torch.no_grad():
+
+        z = z_init.unsqueeze(0) # Shape (1,hist,384)
+
+        for t in range(steps):
+
+            if isinstance(model, EnsembleTransitionModel):
+                z_pred, std_pred  = model.get_stats(z, a_seq[t].unsqueeze(0)) #shape (num_models, 1,384)
+
+                z_mean = z_pred.mean(dim=0) #shape (1,384)
+                z = torch.cat((z[:,1:], z_mean.unsqueeze(0)), dim=1)
+                
+                predictions[:,t,:] =  z_pred.squeeze(1) #shape (num_models,384)
+            else:
+                z_pred = model(z, a_seq[t].unsqueeze(0)) #shape (1,384)
+                predictions[t,:] = z_pred.squeeze(0)
+                z = torch.cat((z[:,1:], z_pred.unsqueeze(0)), dim=1)
+
+    return predictions        
