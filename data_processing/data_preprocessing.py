@@ -26,10 +26,15 @@ def process_h5_with_dino(file_name: str, scan_number: str, encoder: DinoEncoder,
         
         embeddings = encoder.encode_numpy_array(measurements, batch_size=16, save_file_name=save_file_name)
 
+
+
+
+
         if sleep_time_basler == 1:
         
             if file_name.endswith("Gr_4_080426_camera_0001.h5"):
                 embeddings = embeddings[:2500:2]  # Downsample by taking every other element and cutting off the last part
+                np.save(file=save_file_name, arr=embeddings) # Overwrite with the downsampled version if sleep_time_basler is 1
                 print(f"Downsampling images for {file_name} due to sleep_time_basler=1. Original shape: {embeddings.shape}, New shape: {embeddings.shape}")
             else:
                 embeddings = embeddings[::2]
@@ -46,7 +51,16 @@ def extract_from_h5_to_npy(file_path: str, scan_number: str, measurement = 'CH4'
 
         data_np = f[dataset_path]
 
+        # --------------------------------------------------------------------------------------------------------------------------------------------------------------
+        # Hardcoded downsampling for specific files
+        # --------------------------------------------------------------------------------------------------------------------------------------------------------------
+        
         if save_file_name is not None and sleep_time_basler == 2:
+
+            if file_path.endswith("CV_test_Gr_2_160326_camera_0001.h5"):
+                data_np = data_np[:6600]
+                print(f"Downsampling measurement data for {file_path} due to stationary image. Original shape: {data_np.shape}, New shape: {data_np.shape}")
+            
             np.save(file=save_file_name, arr=data_np)
         
         elif save_file_name is not None and sleep_time_basler == 1:
@@ -57,6 +71,7 @@ def extract_from_h5_to_npy(file_path: str, scan_number: str, measurement = 'CH4'
             else:
                 data_np = data_np[::2]  # Downsample by taking every other element
                 print(f"Downsampling measurement data for {file_path} due to sleep_time_basler=1. Original shape: {data_np.shape}, New shape: {data_np.shape}")
+            
             np.save(file=save_file_name, arr=data_np)
 
         else:
