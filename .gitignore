@@ -8,3 +8,4 @@ see_arrays.py
 .DS_Store
 *.pyc
 **/*.pth
+*.npz

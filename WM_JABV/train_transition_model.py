@@ -104,7 +104,7 @@ def plot_training_loss(losses):
 
     return None
 
-def train_ensemble_transition_model(z_data, a_data, y_data, ensemble_model: EnsembleTransitionModel, **kwargs):
+def train_ensemble_transition_model(z_data, a_data, y_data, ensemble_model: EnsembleTransitionModel, save_prefix = "", **kwargs):
 
     """
     Trains each model in the ensemble on the same data.
@@ -124,7 +124,11 @@ def train_ensemble_transition_model(z_data, a_data, y_data, ensemble_model: Ense
 
     for i, model in enumerate(ensemble_model.models):
         print(f"Training model {i+1}/{ensemble_model.num_models}")
-        model, loss = train_transition_model(z_data, a_data, y_data, model=model, save_model_as = f"transition_model_{i}.pth", **kwargs)
+
+        model_name = f"{save_prefix}_transition_model_{i}.pth" if save_prefix else f"transition_model_{i}.pth"
+
+        model, loss = train_transition_model(z_data, a_data, y_data, model=model, save_model_as = model_name, **kwargs)
+        
         losses.append(loss)
 
     return ensemble_model, np.array(losses)

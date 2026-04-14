@@ -14,10 +14,10 @@ def main():
     validation_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\validation_data")
 
 
-    hist = 20
-    step_size = 5
+    hist = 15
+    step_size = 4
     train = True
-    ensemble_model = EnsembleTransitionModel(num_models=6, latent_dim=384, action_dim=1, hidden_dim=256, num_hidden_layers=2, history=hist)
+    ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=256, num_hidden_layers=2, history=hist)
     
     if train:
         
