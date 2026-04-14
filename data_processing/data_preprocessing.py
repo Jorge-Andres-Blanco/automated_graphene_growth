@@ -54,11 +54,19 @@ def extract_from_h5_to_npy(file_path: str, scan_number: str, measurement = 'CH4'
         # --------------------------------------------------------------------------------------------------------------------------------------------------------------
         # Hardcoded downsampling for specific files
         # --------------------------------------------------------------------------------------------------------------------------------------------------------------
-        
+
         if save_file_name is not None and sleep_time_basler == 2:
 
-            if file_path.endswith("CV_test_Gr_2_160326_camera_0001.h5"):
+            if file_path.endswith("CV_test_Gr_1_120326_camera_0001.h5"): #Remove last 15 minutes of reactor cooling
+                data_np = data_np[:3047]
+                print(f"Downsampling measurement data for {file_path} due to stationary image. Original shape: {data_np.shape}, New shape: {data_np.shape}")
+
+            elif file_path.endswith("CV_test_Gr_2_160326_camera_0001.h5"): # Remove from 14:32 due to stationary image
                 data_np = data_np[:6600]
+                print(f"Downsampling measurement data for {file_path} due to stationary image. Original shape: {data_np.shape}, New shape: {data_np.shape}")
+            
+            elif file_path.endswith("CV_test_Gr_3_170326_camera_0001.h5"): # Remove last 35 minutes of reactor cooling
+                data_np = data_np[:7015]
                 print(f"Downsampling measurement data for {file_path} due to stationary image. Original shape: {data_np.shape}, New shape: {data_np.shape}")
             
             np.save(file=save_file_name, arr=data_np)
@@ -109,6 +117,11 @@ if __name__ == "__main__":
          "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_5_090426_camera/Gr_5_090426_camera_0001/",
          "Gr_5_090426_camera_0001.h5",
             2
+        ),
+        (
+         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_6_100426_camera/Gr_6_100426_camera_0001/",
+         "Gr_6_100426_camera_0001.h5",
+            1
         )
     ]
 
