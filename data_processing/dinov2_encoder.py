@@ -35,7 +35,7 @@ class DinoEncoder:
     
     
     @torch.no_grad()
-    def encode_numpy_array(self, images_array: np.ndarray, batch_size: int = 16, save_file_name: str = None) -> np.ndarray:
+    def encode_numpy_array(self, images_array: np.ndarray, batch_size: int = 16, save_file_name: str = None, verbose: bool = False) -> np.ndarray:
         """
         Processes an NumPy array of shape (N, Height, Width).
         Automatically handles scaling, channel expansion, and batched GPU extraction.
@@ -69,7 +69,8 @@ class DinoEncoder:
             all_embeddings.append(embeddings.cpu().numpy())
 
 
-            print(f"Processed batch {i // batch_size + 1} / {int(np.ceil(N / batch_size))}")
+            if verbose:
+                print(f"Processed batch {i // batch_size + 1} / {int(np.ceil(N / batch_size))}")
 
         
         # Stack into a single matrix (N, 384)

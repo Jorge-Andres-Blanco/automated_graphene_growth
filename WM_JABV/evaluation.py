@@ -504,16 +504,16 @@ def plot_uncertainty_ratio(data_dir):
 
     Hardcoded Elements
     ------------------
-    - `hist_range`: Hardcoded to [15, 20, 25].
-    - `step_size_range`: Hardcoded to [4, 5, 7, 10].
+    - `hist_range`: Hardcoded to [1,2,5,10,15, 20, 25].
+    - `step_size_range`: Hardcoded to [2, 4, 5, 7, 10].
     - `rollout_steps`: Hardcoded to 5.
     - Plot styling
     """
     
 
 
-    hist_range = [15, 20, 25]
-    step_size_range = [4, 5, 7, 10]
+    hist_range = [1, 2, 5, 10, 15, 20, 25]
+    step_size_range = [2,4,5,7]
     rollout_steps = 5 
     
     # Create a 2x2 grid of plots for the 4 different step sizes
@@ -582,15 +582,15 @@ def plot_time_comparisons(data_dir: str | Path):
 
     Hardcoded Elements
     ------------------
-    - `hist_range`: Hardcoded to [15, 20, 25].
-    - `step_size_range`: Hardcoded to [4, 5, 7, 10].
+    - `hist_range`: Hardcoded to [1,2,5,10,15, 20, 25].
+    - `step_size_range`: Hardcoded to [2,4,5,7].
     - `rollout_steps`: Hardcoded to 5.
     - Target time horizons: Hardcoded to 20s and 40s for the interpolation and bar chart groupings.
     - Plot styling
     """
     data_dir = Path(data_dir)
-    hist_range = [15, 20, 25]
-    step_size_range = [4, 5, 7, 10]
+    hist_range = [1, 2, 5, 10, 15, 20, 25]
+    step_size_range = [2,4,5,7]
     rollout_steps = 5 
     
     time_multiplier = 2 
@@ -671,15 +671,15 @@ def plot_evaluation_metrics(data_dir: str | Path):
 
     Hardcoded Elements
     ------------------
-    - `hist_range`: Hardcoded to [15, 20, 25].
-    - `step_size_range`: Hardcoded to [4, 5, 7, 10].
+    - `hist_range`: Hardcoded to [1,2,5,10,15, 20, 25].
+    - `step_size_range`: Hardcoded to [2,4,5,7].
     - `rollout_steps`: Hardcoded to 5.
     - Plot styling:
     """
     data_dir = Path(data_dir)
     
-    hist_range = [15, 20, 25]
-    step_size_range = [4, 5, 7, 10]
+    hist_range = [1, 2, 5, 10, 15, 20, 25]
+    step_size_range = [2,4,5,7]
     rollout_steps = 5 
     
     fig_l2, axes_l2 = plt.subplots(2, 2, figsize=(14, 10))

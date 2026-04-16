@@ -43,6 +43,9 @@ def process_h5_with_dino(file_name: str, scan_number: str, encoder: DinoEncoder,
     return embeddings
 
 
+
+
+
 def extract_from_h5_to_npy(file_path: str, scan_number: str, measurement = 'CH4', save_file_name: str = None, sleep_time_basler: int = 2):
 
     with h5py.File(file_path, "r") as f:
@@ -139,15 +142,15 @@ if __name__ == "__main__":
     
         file_path = os.path.join(folder_path, file_name)
 
-        movie_cls_path = os.path.join(saving_folder, f"movie_{file_num}_scan{scan}_cls.npy")
-        save_measurement_path = os.path.join(saving_folder, f"measurement_{file_num}_{measurement}_scan{scan}.npy")
+        sequence_cls_path = os.path.join(saving_folder, f"sequence_{file_num}_scan{scan}_cls.npy")
+        save_seq_measurement_path = os.path.join(saving_folder, f"seq_measurement_{file_num}_{measurement}_scan{scan}.npy")
 
         if file_name == "Gr_4_080426_camera_0001.h5":
             sleep_time_basler = 1
 
-        measurement_data = extract_from_h5_to_npy(file_path=file_path, scan_number=scan, measurement=measurement, save_file_name=save_measurement_path, sleep_time_basler=sleep_time_basler)
+        measurement_data = extract_from_h5_to_npy(file_path=file_path, scan_number=scan, measurement=measurement, save_file_name=save_seq_measurement_path, sleep_time_basler=sleep_time_basler)
 
-        embeddings = process_h5_with_dino(file_path, scan, encoder, save_file_name=movie_cls_path, sleep_time_basler=sleep_time_basler)
+        embeddings = process_h5_with_dino(file_path, scan, encoder, save_file_name=sequence_cls_path, sleep_time_basler=sleep_time_basler)
         
         print("Final Shape:\n", "embeddings: ", embeddings.shape, "measurement_data: ", measurement_data.shape, "sleep_time_basler: ", sleep_time_basler)
         

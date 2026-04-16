@@ -16,8 +16,8 @@ def main():
     validation_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\validation_data")
 
 
-    hist_range = [15, 20, 25]
-    step_size_range = [4, 5, 7, 10]
+    hist_range = [1, 2, 5, 10]
+    step_size_range = [2,4,5,7]
     train = True
 
 
@@ -33,7 +33,7 @@ def main():
             if train:
                 
                 z_train, a_train, y_train = load_transition_data(train_data_path, step_size = step_size, hist_length = hist)
-                ensemble_model, losses = ttm.train_ensemble_transition_model(z_train, a_train, y_train, ensemble_model=ensemble_model, save_prefix=f"{run_id}", epochs=10, lr=1e-3, batch_size=64)
+                ensemble_model, losses = ttm.train_ensemble_transition_model(z_train, a_train, y_train, ensemble_model=ensemble_model, save_prefix=f"{run_id}", epochs=4, lr=1e-3, batch_size=64)
                 losses_mean = np.mean(losses, axis=0)
                 losses_std = np.std(losses, axis=0)
 
@@ -91,3 +91,7 @@ def main():
 
 
     return None
+
+
+if "__main__" == __name__:
+    main()
