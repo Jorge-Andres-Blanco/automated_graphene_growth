@@ -21,34 +21,43 @@ def process_h5_with_dino(file_name: str, scan_number: str, encoder: DinoEncoder,
             
         measurements = f[dataset_path]
 
+        print(f"File: {file_name}")
         print(f"Found dataset -> Shape: {measurements.shape}, Type: {measurements.dtype}, Chunks: {measurements.chunks}")
         
         
-        embeddings = encoder.encode_numpy_array(measurements, batch_size=16, save_file_name=save_file_name)
+        embeddings = encoder.encode_numpy_array(measurements, batch_size=16)
 
-
-
-
-
+        # --------------------------------------------------------------------------------------------------------------------------------------------------------------
+        # Hardcoded downsampling for specific files
+        # --------------------------------------------------------------------------------------------------------------------------------------------------------------
+        
         if sleep_time_basler == 1:
         
             if file_name.endswith("Gr_4_080426_camera_0001.h5"):
                 embeddings = embeddings[:2500:2]  # Downsample by taking every other element and cutting off the last part
-                np.save(file=save_file_name, arr=embeddings) # Overwrite with the downsampled version if sleep_time_basler is 1
-                print(f"Downsampling images for {file_name} due to sleep_time_basler=1. Original shape: {embeddings.shape}, New shape: {embeddings.shape}")
             else:
                 embeddings = embeddings[::2]
-                np.save(file=save_file_name, arr=embeddings) # Overwrite with the downsampled version if sleep_time_basler is 1
-                print(f"Downsampling images for {file_name} due to sleep_time_basler=1. Original shape: {embeddings.shape}, New shape: {embeddings.shape}")
+
+        elif sleep_time_basler == 2:
+            if file_name.endswith("CV_test_Gr_1_120326_camera_0001_with_experimental_data.h5"): #Remove last 15 minutes of reactor cooling
+                embeddings = embeddings[:3047]
+
+            elif file_name.endswith("CV_test_Gr_2_160326_camera_0001_with_experimental_data.h5"): # Remove from 14:32 due to stationary image
+                embeddings = embeddings[:6600]
+            
+            elif file_name.endswith("CV_test_Gr_3_170326_camera_0001.h5"): # Remove last 35 minutes of reactor cooling
+                embeddings = embeddings[:7015]
+
+
+        if save_file_name is not None:
+            np.save(file=save_file_name, arr=embeddings)
+    
     return embeddings
 
 
+def extract_from_h5_to_npy(file_name: str, scan_number: str, measurement = 'CH4', save_file_name: str = None, sleep_time_basler: int = 2):
 
-
-
-def extract_from_h5_to_npy(file_path: str, scan_number: str, measurement = 'CH4', save_file_name: str = None, sleep_time_basler: int = 2):
-
-    with h5py.File(file_path, "r") as f:
+    with h5py.File(file_name, "r") as f:
         
         dataset_path = f"{scan_number}.1/measurement/{measurement}"
 
@@ -60,28 +69,23 @@ def extract_from_h5_to_npy(file_path: str, scan_number: str, measurement = 'CH4'
 
         if save_file_name is not None and sleep_time_basler == 2:
 
-            if file_path.endswith("CV_test_Gr_1_120326_camera_0001.h5"): #Remove last 15 minutes of reactor cooling
+            if file_name.endswith("CV_test_Gr_1_120326_camera_0001_with_experimental_data.h5"): #Remove last 15 minutes of reactor cooling
                 data_np = data_np[:3047]
-                print(f"Downsampling measurement data for {file_path} due to stationary image. Original shape: {data_np.shape}, New shape: {data_np.shape}")
 
-            elif file_path.endswith("CV_test_Gr_2_160326_camera_0001.h5"): # Remove from 14:32 due to stationary image
+            elif file_name.endswith("CV_test_Gr_2_160326_camera_0001_with_experimental_data.h5"): # Remove from 14:32 due to stationary image
                 data_np = data_np[:6600]
-                print(f"Downsampling measurement data for {file_path} due to stationary image. Original shape: {data_np.shape}, New shape: {data_np.shape}")
             
-            elif file_path.endswith("CV_test_Gr_3_170326_camera_0001.h5"): # Remove last 35 minutes of reactor cooling
+            elif file_name.endswith("CV_test_Gr_3_170326_camera_0001.h5"): # Remove last 35 minutes of reactor cooling
                 data_np = data_np[:7015]
-                print(f"Downsampling measurement data for {file_path} due to stationary image. Original shape: {data_np.shape}, New shape: {data_np.shape}")
             
             np.save(file=save_file_name, arr=data_np)
         
         elif save_file_name is not None and sleep_time_basler == 1:
             
-            if file_path.endswith("Gr_4_080426_camera_0001.h5"):
+            if file_name.endswith("Gr_4_080426_camera_0001.h5"):
                 data_np = data_np[:2500:2]  # Downsample by taking every other element and cutting off the last part
-                print(f"Downsampling measurement data for {file_path} due to sleep_time_basler=1. Original shape: {data_np.shape}, New shape: {data_np.shape}")
             else:
                 data_np = data_np[::2]  # Downsample by taking every other element
-                print(f"Downsampling measurement data for {file_path} due to sleep_time_basler=1. Original shape: {data_np.shape}, New shape: {data_np.shape}")
             
             np.save(file=save_file_name, arr=data_np)
 
@@ -129,31 +133,42 @@ if __name__ == "__main__":
     ]
 
     saving_folder = "/data/lmcat/Computer_vision/data_arrays"
-
-
-    
     measurement = "CH4"
-
     file_num = 0
 
-    sleep_time_basler = 2
-
     for folder_path, file_name, scan in DATA_FILES:
-    
-        file_path = os.path.join(folder_path, file_name)
+        
+        full_file_path = os.path.join(folder_path, file_name)
 
         sequence_cls_path = os.path.join(saving_folder, f"sequence_{file_num}_scan{scan}_cls.npy")
         save_seq_measurement_path = os.path.join(saving_folder, f"seq_measurement_{file_num}_{measurement}_scan{scan}.npy")
 
-        if file_name == "Gr_4_080426_camera_0001.h5":
-            sleep_time_basler = 1
+        if full_file_path.endswith("Gr_4_080426_camera_0001.h5"):
+            current_sleep_time = 1
+        else:
+            current_sleep_time = 2
 
+        measurement_data = extract_from_h5_to_npy(
+            file_name=full_file_path, 
+            scan_number=scan, 
+            measurement=measurement, 
+            save_file_name=save_seq_measurement_path, 
+            sleep_time_basler=current_sleep_time
+        )
         measurement_data = extract_from_h5_to_npy(file_path=file_path, scan_number=scan, measurement=measurement, save_file_name=save_seq_measurement_path, sleep_time_basler=sleep_time_basler)
 
+        embeddings = process_h5_with_dino(
+            file_name=full_file_path, 
+            scan_number=scan, 
+            encoder=encoder, 
+            save_file_name=movie_cls_path, 
+            sleep_time_basler=current_sleep_time
+        )
         embeddings = process_h5_with_dino(file_path, scan, encoder, save_file_name=sequence_cls_path, sleep_time_basler=sleep_time_basler)
         
-        print("Final Shape:\n", "embeddings: ", embeddings.shape, "measurement_data: ", measurement_data.shape, "sleep_time_basler: ", sleep_time_basler)
+        print(f"File {file_num} ({file_name}) Final Shape:")
+        print(f"  embeddings: {embeddings.shape}")
+        print(f"  measurement_data: {measurement_data.shape}")
+        print(f"  sleep_time_basler: {current_sleep_time}\n")
         
-
-        sleep_time_basler = 2 # Reset to default for next file
         file_num += 1

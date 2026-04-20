@@ -27,7 +27,6 @@ def main():
         losses_std = np.std(losses, axis=0)
 
         ttm.plot_training_loss(losses_mean)
-        ttm.plot_training_loss(losses_std)
         print(f"Ensemble training completed. Last loss mean and std: {losses_mean[-1]}, {losses_std[-1]}")
     
     else:

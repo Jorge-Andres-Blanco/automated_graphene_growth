@@ -1,6 +1,10 @@
 import torch
 import torchvision.transforms as T
 import numpy as np
+import ssl
+
+# Bypass institutional SSL interception xd
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
 class DinoEncoder:
@@ -75,11 +79,6 @@ class DinoEncoder:
         
         # Stack into a single matrix (N, 384)
         embeddings_array = np.vstack(all_embeddings)
-
-        if save_file_name is not None:
-            np.save(file=save_file_name, arr=embeddings_array)
-        else:
-            np.save(file="embeddings", arr=embeddings_array)
 
         return embeddings_array
         
