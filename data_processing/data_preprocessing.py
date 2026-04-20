@@ -155,16 +155,9 @@ if __name__ == "__main__":
             save_file_name=save_seq_measurement_path, 
             sleep_time_basler=current_sleep_time
         )
-        measurement_data = extract_from_h5_to_npy(file_path=file_path, scan_number=scan, measurement=measurement, save_file_name=save_seq_measurement_path, sleep_time_basler=sleep_time_basler)
+        measurement_data = extract_from_h5_to_npy(file_path=full_file_path, scan_number=scan, measurement=measurement, save_file_name=save_seq_measurement_path, sleep_time_basler=current_sleep_time)
 
-        embeddings = process_h5_with_dino(
-            file_name=full_file_path, 
-            scan_number=scan, 
-            encoder=encoder, 
-            save_file_name=movie_cls_path, 
-            sleep_time_basler=current_sleep_time
-        )
-        embeddings = process_h5_with_dino(file_path, scan, encoder, save_file_name=sequence_cls_path, sleep_time_basler=sleep_time_basler)
+        embeddings = process_h5_with_dino(full_file_path, scan, encoder, save_file_name=sequence_cls_path, sleep_time_basler=current_sleep_time)
         
         print(f"File {file_num} ({file_name}) Final Shape:")
         print(f"  embeddings: {embeddings.shape}")
