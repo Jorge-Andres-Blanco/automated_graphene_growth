@@ -12,12 +12,12 @@ import gc
 def main():
 
     # To be changed according to the executing machine
-    train_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\training_data")
-    validation_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\validation_data")
+    train_data_path = Path("/data/lmcat/Computer_vision/training_data")
+    validation_data_path = Path("/data/lmcat/Compuer_vision/validation_data")
 
 
-    hist_range = [1, 2, 5, 10]
-    step_size_range = [2,4,5,7]
+    hist_range = [1, 2, 5, 10, 20]
+    step_size_range = [2,4,5,6]
     train = True
 
 
@@ -28,16 +28,15 @@ def main():
             run_id = f"hist_{hist}_step_{step_size}"
             print(f"Running evaluation for {run_id}")
 
-            ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=256, num_hidden_layers=2, history=hist)
+            ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history=hist)
             
             if train:
                 
-                z_train, a_train, y_train = load_transition_data(train_data_path, step_size = step_size, hist_length = hist)
-                ensemble_model, losses = ttm.train_ensemble_transition_model(z_train, a_train, y_train, ensemble_model=ensemble_model, save_prefix=f"{run_id}", epochs=4, lr=1e-3, batch_size=64)
+                ensemble_model, losses = ttm.train_ensmble_with_bagging(ensemble_model=ensemble_model, data_path = train_data_path, save_prefix = "bagging", epochs=5, lr=1e-3, batch_size=64, step_size = step_size)
                 losses_mean = np.mean(losses, axis=0)
                 losses_std = np.std(losses, axis=0)
 
-
+                ttm.plot_training_loss(losses_mean)
                 print(f"Ensemble training completed. Last loss mean and std: {losses_mean[-1]}, {losses_std[-1]}")
             
             else:

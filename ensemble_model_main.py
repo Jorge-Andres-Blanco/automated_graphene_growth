@@ -15,14 +15,14 @@ def main():
 
 
     hist = 15
-    step_size = 4
+    step_size = 5
     train = True
-    ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=256, num_hidden_layers=2, history=hist)
+    ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history=hist)
     
+    # Training 
     if train:
         
-        z_train, a_train, y_train = load_transition_data(train_data_path, step_size = step_size, hist_length = hist)
-        ensemble_model, losses = ttm.train_ensemble_transition_model(z_train, a_train, y_train, ensemble_model=ensemble_model, epochs=30, lr=1e-3, batch_size=64)
+        ensemble_model, losses = ttm.train_ensmble_with_bagging(ensemble_model=ensemble_model, data_path = train_data_path, save_prefix = "bagging", epochs=5, lr=1e-3, batch_size=64, step_size = step_size)
         losses_mean = np.mean(losses, axis=0)
         losses_std = np.std(losses, axis=0)
 
@@ -36,8 +36,9 @@ def main():
             model.load_state_dict(torch.load(f"transition_model_{i}.pth"))
 
 
+    # Evaluation
     z_eval, a_eval, y_eval, indices = load_transition_data(validation_data_path, step_size = step_size, hist_length = hist, return_indices=True)
-    print (z_eval.shape, a_eval.shape, y_eval.shape)
+    print(z_eval.shape, a_eval.shape, y_eval.shape)
 
     l2_distances, cos_similarities, mse_loss = eval.evaluate_ensemble_transition_model(ensemble_model, z_eval, a_eval, y_eval)
 
