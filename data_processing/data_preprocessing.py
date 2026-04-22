@@ -5,6 +5,38 @@ import os
 
 from dinov2_encoder import DinoEncoder
 
+DATA_FILES = [
+        (
+         "/data/lmcat/inhouse/20260312/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_1_120326_camera/CV_test_Gr_1_120326_camera_0001",
+         "CV_test_Gr_1_120326_camera_0001_with_experimental_data.h5",
+            1
+        ),
+        (
+         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_2_160326_camera/CV_test_Gr_2_160326_camera_0001",
+         "CV_test_Gr_2_160326_camera_0001_with_experimental_data.h5",
+            1
+        ),
+        (
+         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_3_170326_camera/CV_test_Gr_3_170326_camera_0001",
+         "CV_test_Gr_3_170326_camera_0001.h5",
+            1
+        ),
+        ("/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_4_080426_camera/Gr_4_080426_camera_0001/",
+         "Gr_4_080426_camera_0001.h5",
+            2
+        ),
+        (
+         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_5_090426_camera/Gr_5_090426_camera_0001/",
+         "Gr_5_090426_camera_0001.h5",
+            2
+        ),
+        (
+         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_6_100426_camera/Gr_6_100426_camera_0001/",
+         "Gr_6_100426_camera_0001.h5",
+            1
+        )
+    ]
+
 
 def process_h5_with_dino(file_name: str, scan_number: str, encoder: DinoEncoder, save_file_name: str = None, sleep_time_basler: int = 2):
     """
@@ -99,38 +131,6 @@ def extract_from_h5_to_npy(file_name: str, scan_number: str, measurement = 'CH4'
 
 if __name__ == "__main__":
     encoder = DinoEncoder()
-
-    DATA_FILES = [
-        (
-         "/data/lmcat/inhouse/20260312/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_1_120326_camera/CV_test_Gr_1_120326_camera_0001",
-         "CV_test_Gr_1_120326_camera_0001_with_experimental_data.h5",
-            1
-        ),
-        (
-         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_2_160326_camera/CV_test_Gr_2_160326_camera_0001",
-         "CV_test_Gr_2_160326_camera_0001_with_experimental_data.h5",
-            1
-        ),
-        (
-         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_3_170326_camera/CV_test_Gr_3_170326_camera_0001",
-         "CV_test_Gr_3_170326_camera_0001.h5",
-            1
-        ),
-        ("/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_4_080426_camera/Gr_4_080426_camera_0001/",
-         "Gr_4_080426_camera_0001.h5",
-            2
-        ),
-        (
-         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_5_090426_camera/Gr_5_090426_camera_0001/",
-         "Gr_5_090426_camera_0001.h5",
-            2
-        ),
-        (
-         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_6_100426_camera/Gr_6_100426_camera_0001/",
-         "Gr_6_100426_camera_0001.h5",
-            1
-        )
-    ]
 
     saving_folder = "/data/lmcat/Computer_vision/data_arrays"
     measurement = "CH4"

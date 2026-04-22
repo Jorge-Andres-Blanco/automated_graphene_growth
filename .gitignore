@@ -9,3 +9,5 @@ see_arrays.py
 *.pyc
 **/*.pth
 *.npz
+*.png
+*.jpg

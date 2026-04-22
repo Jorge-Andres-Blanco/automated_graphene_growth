@@ -729,3 +729,85 @@ def plot_evaluation_metrics(data_dir: str | Path):
     fig_cos.tight_layout()
     
     plt.show()
+
+
+
+
+def plot_possible_actions_losses(losses, actions, aggregate='mean', save_path=None):
+    """
+    Visualizes the predictive losses for different constant-action sequences.
+
+    Parameters
+    ----------
+    losses : torch.Tensor or np.ndarray
+        The distance metric for each action sequence. Shape: (possibilities, steps).
+    actions : torch.Tensor, np.ndarray, or list
+        The corresponding action values that were evaluated. Length: (possibilities,).
+    aggregate : str or None
+        If 'mean', plots a single bar per action representing the loss averaged 
+        across all future steps. If None, plots a grouped bar chart showing the 
+        loss at each specific future step.
+    save_path : str or pathlib.Path, optional
+        If provided, saves the figure to this location.
+    """
+
+
+    # Force inputs into standard NumPy arrays for matplotlib compatibility
+    if isinstance(losses, torch.Tensor):
+        losses = losses.cpu().numpy()
+    if isinstance(actions, torch.Tensor):
+        actions = actions.cpu().numpy()
+        
+    num_actions, steps = losses.shape
+    
+    fig, ax = plt.subplots(figsize=(14, 6))
+    
+    if aggregate == 'mean':
+        # Average loss across the temporal rollout
+        mean_losses = losses.mean(axis=1)
+        
+        # Color the best (lowest loss) action distinctly to make the chart actionable
+        best_idx = np.argmin(mean_losses)
+        colors = ['#1f77b4' if i != best_idx else '#2ca02c' for i in range(num_actions)]
+        
+        bars = ax.bar(actions.astype(str), mean_losses, color=colors, edgecolor='black')
+        
+        ax.set_ylabel("Mean Loss (MSE + Alignment)")
+        ax.set_title("Average Predictive Loss per Action Sequence (Green = Optimal)")
+        
+    elif aggregate is None:
+        # Grouped bar chart (Only recommended for small action spaces)
+        x_indices = np.arange(num_actions)
+        bar_width = 0.8 / steps
+        
+        # Calculate offsets to perfectly center the group of bars over the tick mark
+        offsets = np.linspace(-0.4 + bar_width/2, 0.4 - bar_width/2, steps)
+        
+        for s in range(steps):
+            ax.bar(
+                x_indices + offsets[s], 
+                losses[:, s], 
+                width=bar_width, 
+                label=f'Step {s+1}',
+                alpha=0.9
+            )
+            
+        ax.set_xticks(x_indices)
+        ax.set_xticklabels(actions.astype(str))
+        ax.set_ylabel("Step-wise Loss")
+        ax.set_title("Temporal Predictive Loss per Action")
+        ax.legend(title="Rollout Step")
+        
+    else:
+        raise ValueError("Invalid aggregate parameter. Use 'mean' or None.")
+        
+    ax.set_xlabel("Constant CH4 Action Value")
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Saved plot to {save_path}")
+        
+    plt.show()

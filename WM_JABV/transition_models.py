@@ -127,29 +127,24 @@ class TransitionModel(nn.Module):
 
         predictions = torch.zeros((steps, 384), device=device)
 
-        # Handle z_init dimensions: ensure (batch, history, latent_dim)
-        if z_init.dim() == 1:
-            z_init = z_init.unsqueeze(-1) # (latent_dim, 1) - though latent_dim is usually the last dim
-        z_hist = z_init if z_init.dim() == 3 else z_init.unsqueeze(0) # (1, history, latent_dim)
-
-
-        # Ensure a_init is also (1, history, action_dim)
-        if a_init.dim() == 1:
-            a_init = a_init.unsqueeze(-1) 
-        a_hist = a_init if a_init.dim() == 3 else a_init.unsqueeze(0)
-
-        # Ensure a_fut is (steps, action_dim)
-        if a_fut.dim() == 1:
-            a_fut = a_fut.unsqueeze(-1)
+        # Hanfle dimensions
+        z_hist = z_init.view(1, self.history, self.latent_dim)
+        a_hist = a_init.view(1, self.history, self.action_dim)
+        a_fut_seq = a_fut.view(steps, self.action_dim)
 
         for t in range(steps):
 
             z_next = self(z_hist, a_hist)
             predictions[t] = z_next.squeeze(0)
 
-            # Update sliding windows by dropping oldest and appending newest
+            # z_next.unsqueeze(1) transforms (1, 384) -> (1, 1, 384)
+            z_hist = torch.cat((z_hist[:, 1:, :], z_next.unsqueeze(1)), dim=1)
+
+            # Update history by dropping oldest and appending newest
             z_hist = torch.cat((z_hist[:, 1:, :], z_next.unsqueeze(0)), dim=1)
-            a_hist = torch.cat((a_hist[:, 1:, :], a_fut[t].unsqueeze(0).unsqueeze(0)), dim=1)
+            # Extract the specific action and shape it to (1, 1, action_dim)
+            next_a = a_fut_seq[t].view(1, 1, self.action_dim)
+            a_hist = torch.cat((a_hist[:, 1:, :], next_a), dim=1)
 
         return predictions
 
@@ -250,17 +245,18 @@ class EnsembleTransitionModel(nn.Module):
 
         # Default target: maintain the current state
         if target is None:
-            target = z_init[:, -1, :] # Shape: (batch_size, 384) or (384,)
+            target = z_init.unsqueeze(0)[:, -1, :] # Shape: (batch_size, 384) or (384,)
 
         # Define Action Space
+        # Every 0.5 to analyze intermediate values
         if a_pos == "all":
-            a_search = torch.arange(0, 20, 1)
+            a_search = torch.arange(0, 20, 0.5)
         elif a_pos == "closer_5":
             a_current = int(a_init[0, -1, 0])
-            a_search = torch.arange(a_current - 2, a_current + 3, 1)
+            a_search = torch.arange(a_current - 2, a_current + 3, 0.5)
         elif a_pos == "closer_7":
             a_current = int(a_init[0, -1, 0])
-            a_search = torch.arange(a_current - 3, a_current + 4, 1)
+            a_search = torch.arange(a_current - 3, a_current + 4, 0.5)
         else:
             raise ValueError("Invalid a_pos. Use 'all', 'closer_5', or 'closer_7'.")
 
@@ -278,13 +274,15 @@ class EnsembleTransitionModel(nn.Module):
 
             predictions[i] = self.predict_next_steps(z_init, a_init, a_fut)
 
-
-        # Target expansion to shape (1,1,1,384) and then as predicions (possibilities, num_models, steps, 384)
-        target_exp = target.view(1,1,1,-1).expand_as(predictions)
+        # New shape: (possibilities, num_models, 384)
+        final_predictions = predictions[:, :, -1, :]
+        
+        # Target expansion to shape (1,1,384) and then as predicions (possibilities, num_models, 384)
+        target_exp = target.view(1,1,-1).expand_as(final_predictions)
 
         # Loss
-        mse_loss = nn.functional.mse_loss(predictions, target_exp, reduction='none').mean(dim=-1)
-        cos_sim = nn.functional.cosine_similarity(predictions, target_exp, dim=-1)
+        mse_loss = nn.functional.mse_loss(final_predictions, target_exp, reduction='none').mean(dim=-1)
+        cos_sim = nn.functional.cosine_similarity(final_predictions, target_exp, dim=-1)
 
         alpha = 1.0
         combined_loss = mse_loss + alpha*(1-cos_sim)
@@ -292,4 +290,4 @@ class EnsembleTransitionModel(nn.Module):
         # Average across all models (dim 1)
         losses = combined_loss.mean(dim=1)
 
-        return losses #shape (possibilities, steps)
+        return losses.unsqueeze(1), a_search #shape (possibilities, 1)
