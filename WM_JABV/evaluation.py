@@ -733,14 +733,14 @@ def plot_evaluation_metrics(data_dir: str | Path):
 
 
 
-def plot_possible_actions_losses(losses, actions, aggregate='mean', save_path=None):
+def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, aggregate='mean', save_path=None):
     """
     Visualizes the predictive losses for different constant-action sequences.
 
     Parameters
     ----------
     losses : torch.Tensor or np.ndarray
-        The distance metric for each action sequence. Shape: (possibilities, steps).
+        The distance metric for each action sequence. Shape: (possibilities, num_models, steps).
     actions : torch.Tensor, np.ndarray, or list
         The corresponding action values that were evaluated. Length: (possibilities,).
     aggregate : str or None
@@ -749,34 +749,49 @@ def plot_possible_actions_losses(losses, actions, aggregate='mean', save_path=No
         loss at each specific future step.
     save_path : str or pathlib.Path, optional
         If provided, saves the figure to this location.
-    """
-
+    """    
 
     # Force inputs into standard NumPy arrays for matplotlib compatibility
-    if isinstance(losses, torch.Tensor):
-        losses = losses.cpu().numpy()
-    if isinstance(actions, torch.Tensor):
-        actions = actions.cpu().numpy()
+    losses = losses.cpu().numpy()
+    actions = actions.cpu().numpy()
         
-    num_actions, steps = losses.shape
+    num_actions, num_models, steps = losses.shape
     
     fig, ax = plt.subplots(figsize=(14, 6))
     
     if aggregate == 'mean':
-        # Average loss across the temporal rollout
-        mean_losses = losses.mean(axis=1)
+        # Average across the temporal rollout (steps) first
+        # Shape becomes (possibilities, num_models)
+        time_averaged_losses = losses.mean(axis=2)
         
+        # 2. Calculate the mean and std across the ensemble models (num_models)
+        # Shapes become (possibilities,)
+        mean_losses = time_averaged_losses.mean(axis=1)
+        std_losses = time_averaged_losses.std(axis=1)
+
         # Color the best (lowest loss) action distinctly to make the chart actionable
         best_idx = np.argmin(mean_losses)
         colors = ['#1f77b4' if i != best_idx else '#2ca02c' for i in range(num_actions)]
         
-        bars = ax.bar(actions.astype(str), mean_losses, color=colors, edgecolor='black')
+        ax.bar(
+            actions.astype(str), 
+            mean_losses, 
+            yerr=std_losses,
+            ecolor='red', 
+            capsize=5,             # Adds horizontal caps to the error bars
+            color=colors, 
+            edgecolor='black',
+            alpha=0.85
+        )
         
-        ax.set_ylabel("Mean Loss (MSE + Alignment)")
-        ax.set_title("Average Predictive Loss per Action Sequence (Green = Optimal)")
+        ax.set_ylabel("Mean Loss (MSE + Alignment)", fontsize = 14)
+        ax.set_title("Average Predictive Loss per Action Sequence", fontsize = 16)
         
     elif aggregate is None:
-        # Grouped bar chart (Only recommended for small action spaces)
+        # Shapes become (possibilities, steps)
+        mean_losses = losses.mean(axis=1)
+        std_losses = losses.std(axis=1)
+        
         x_indices = np.arange(num_actions)
         bar_width = 0.8 / steps
         
@@ -786,22 +801,32 @@ def plot_possible_actions_losses(losses, actions, aggregate='mean', save_path=No
         for s in range(steps):
             ax.bar(
                 x_indices + offsets[s], 
-                losses[:, s], 
+                mean_losses[:, s], 
+                yerr=std_losses[:, s], # Apply the step-specific standard deviation
                 width=bar_width, 
+                capsize=3,             # Smaller caps for crowded grouped bars
                 label=f'Step {s+1}',
-                alpha=0.9
+                alpha=0.9,
+                edgecolor='black'
             )
-            
-        ax.set_xticks(x_indices)
-        ax.set_xticklabels(actions.astype(str))
-        ax.set_ylabel("Step-wise Loss")
-        ax.set_title("Temporal Predictive Loss per Action")
-        ax.legend(title="Rollout Step")
+        ax.set_ylabel("Step-wise Loss", fontsize = 14)
+        ax.set_title("Temporal Predictive Loss per Action (Error bars = Ensemble Std)", fontsize = 16)
+        ax.legend(title="Rollout Step", fontsize = 12)
         
     else:
         raise ValueError("Invalid aggregate parameter. Use 'mean' or None.")
-        
-    ax.set_xlabel("Constant CH4 Action Value")
+    
+    tick_positions = [i for i, action in enumerate(actions) if action % 1 == 0]
+    
+    # 2. Extract those exact integer values to use as the visual labels
+    tick_labels = [int(actions[i]) for i in tick_positions]
+    
+    # 3. Apply them to the axis
+    ax.set_xticks(tick_positions)
+    ax.set_xticklabels(tick_labels)
+    ax.set_xlim(-0.5,num_actions-0.5)
+    ax.tick_params(axis='both', labelsize = 12)
+    ax.set_xlabel("Constant CH4 Action Value", fontsize = 14)
     ax.grid(axis='y', linestyle='--', alpha=0.7)
     
     plt.tight_layout()
@@ -810,4 +835,85 @@ def plot_possible_actions_losses(losses, actions, aggregate='mean', save_path=No
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Saved plot to {save_path}")
         
+    plt.show()
+
+
+
+@torch.no_grad()
+def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, a_pos="all", steps=5, save_path=None):
+    """
+    Simulates a sequence of frames, predicting the optimal action to reach a future 
+    target dynamically extracted from the trajectory.
+    """
+    #device = next(model.parameters()).device
+
+    N = z_sequence.shape[0]
+
+    # Only evaluate frames where a future target exists
+    valid_frames = N - steps
+    
+    if valid_frames <= 0:
+        raise ValueError(f"sequence length ({N}) is too short to evaluate a horizon of {steps} steps.")
+
+    # Pre-allocate arrays for plotting
+    pred_actions = np.zeros(valid_frames)
+    std_actions = np.zeros(valid_frames)
+    real_actions = np.zeros(valid_frames)
+
+    for i in range(valid_frames):
+        
+        # Current sliding window
+        z_init = z_sequence[i]#.clone().to(device)
+        a_init = a_sequence[i]#.clone().to(device)
+
+        # z_sequence[i + steps] is the future sliding window. 
+        # [-1] to get that specific future frame (not the whole window).
+        target = z_sequence[i + steps][-1]#.clone().to(device)
+
+        # Real action that was actually executed at time t
+        real_actions[i] = a_init[-1].item()
+
+        # Predict the best action to reach the future target (t+step)
+        pred_a, std_a = ensemble_model.predict_next_step(
+            steps=steps,
+            z_init=z_init,
+            a_init=a_init,
+            a_pos=a_pos,
+            target=target
+        )
+
+        pred_actions[i] = pred_a
+        std_actions[i] = std_a
+
+    # --- PLOTTING ---
+    frames = np.arange(valid_frames)
+    fig, ax = plt.subplots(figsize=(14, 6))
+
+    ax.plot(frames, real_actions, label='Real', color='black', linewidth=2, linestyle='--')
+    ax.plot(frames, pred_actions, label=f'Predicted Optimal (to reach target)', color='#1f77b4', linewidth=2)
+
+    ax.fill_between(
+        frames,
+        pred_actions - std_actions,
+        pred_actions + std_actions,
+        color="#b41f1f",
+        alpha=0.1,
+        label=r'Ensemble Uncertainty (±1 $\sigma$)'
+    )
+    ax.set_ylim(0,20)
+    ax.set_xlim(frames[0], frames[-1])
+    ax.set_xlabel("Frame", fontsize = 14)
+    ax.set_ylabel("CH4 Flow (sccm)", fontsize = 14)
+    ax.set_title(f"Real vs Predicted Actions (Target = {steps} steps ahead), Possible Actions: {a_pos}", fontsize = 16)
+    ax.tick_params(axis='both', labelsize = 12)
+    ax.legend(loc="upper right")
+    ax.grid(True, linestyle=':', alpha=0.7)
+    
+    ax.xaxis.get_major_locator().set_params(integer=True)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300)
+        print(f"Saved plot to {save_path}")
+
     plt.show()

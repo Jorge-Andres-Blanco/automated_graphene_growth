@@ -235,7 +235,7 @@ class EnsembleTransitionModel(nn.Module):
 
 
     @torch.no_grad()
-    def predict_action_results(self, steps: int, z_init: torch.Tensor, a_init: torch.Tensor, a_pos:str = "all", target:torch.Tensor = None):
+    def predict_action_losses(self, steps: int, z_init: torch.Tensor, a_init: torch.Tensor, a_pos:str = "all", target:torch.Tensor = None):
         """
         Evaluates hypothetical constant-action sequences over a future horizon and 
         scores them against a target state.
@@ -245,18 +245,18 @@ class EnsembleTransitionModel(nn.Module):
 
         # Default target: maintain the current state
         if target is None:
-            target = z_init.unsqueeze(0)[:, -1, :] # Shape: (batch_size, 384) or (384,)
+            target = z_init.view(-1, 384)[-1:]
 
         # Define Action Space
         # Every 0.5 to analyze intermediate values
         if a_pos == "all":
-            a_search = torch.arange(0, 20, 0.5)
+            a_search = torch.arange(0, 20, 0.5, device=device)
         elif a_pos == "closer_5":
-            a_current = int(a_init[0, -1, 0])
-            a_search = torch.arange(a_current - 2, a_current + 3, 0.5)
+            a_current = a_init[-1].item()
+            a_search = torch.arange(a_current - 2, a_current + 3, 0.5, device=device)
         elif a_pos == "closer_7":
-            a_current = int(a_init[0, -1, 0])
-            a_search = torch.arange(a_current - 3, a_current + 4, 0.5)
+            a_current = a_init[-1].item()
+            a_search = torch.arange(a_current - 3, a_current + 4, 0.5, device=device)
         else:
             raise ValueError("Invalid a_pos. Use 'all', 'closer_5', or 'closer_7'.")
 
@@ -274,20 +274,47 @@ class EnsembleTransitionModel(nn.Module):
 
             predictions[i] = self.predict_next_steps(z_init, a_init, a_fut)
 
-        # New shape: (possibilities, num_models, 384)
-        final_predictions = predictions[:, :, -1, :]
-        
-        # Target expansion to shape (1,1,384) and then as predicions (possibilities, num_models, 384)
-        target_exp = target.view(1,1,-1).expand_as(final_predictions)
+
+        # Target expansion to shape (1,1,1,384) and then as predicions (possibilities, num_models, steps, 384)
+        target_exp = target.view(1,1,1,-1).expand_as(predictions)
 
         # Loss
-        mse_loss = nn.functional.mse_loss(final_predictions, target_exp, reduction='none').mean(dim=-1)
-        cos_sim = nn.functional.cosine_similarity(final_predictions, target_exp, dim=-1)
+        mse_loss = nn.functional.mse_loss(predictions, target_exp, reduction='none').mean(dim=-1)
+        cos_sim = nn.functional.cosine_similarity(predictions, target_exp, dim=-1)
 
         alpha = 1.0
         combined_loss = mse_loss + alpha*(1-cos_sim)
 
-        # Average across all models (dim 1)
-        losses = combined_loss.mean(dim=1)
+        # Returns combined_loss (possibilities, num_models) and a_search (possibilities,)
+        return combined_loss, a_search
+    
 
-        return losses.unsqueeze(1), a_search #shape (possibilities, 1)
+    @torch.no_grad()
+    def predict_next_step(self, steps: int, z_init: torch.Tensor, a_init: torch.Tensor, a_pos:str = "all", target:torch.Tensor = None, aggregate_steps:str = "horizon_loss"):
+
+        """
+        Returns best next step with standard deviation
+        """
+        device = z_init.device
+        losses, a_search = self.predict_action_losses(steps, z_init, a_init, a_pos, target)
+        
+        if aggregate_steps == "horizon_loss":
+            losses = losses[:,:,-1]
+        elif aggregate_steps == "mean":
+            losses = losses.mean(dim=-1)
+        elif aggregate_steps == "cumulative_sum":
+            losses = losses.sum(dim=-1)
+        else:
+            raise ValueError("Invalid aggregate_steps. Use 'horizon_loss', 'mean', or 'cumulative_sum'.")
+        
+
+        #Get the best_action of each model
+
+        best_action_indices = losses.argmin(dim=0) #Shape (num_models,)
+
+        best_actions = a_search[best_action_indices] #Shape (num_models,)
+
+        next_action_pred = best_actions.mean().item()
+        next_action_std = best_actions.std().item()
+
+        return next_action_pred, next_action_std

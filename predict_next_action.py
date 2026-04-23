@@ -14,8 +14,8 @@ def main():
     validation_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\validation_data")
 
 
-    hist = 5
-    step_size = 6
+    hist = 10
+    step_size = 4
     context_needed = hist*step_size
     train = False
     ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history=hist)
@@ -45,12 +45,12 @@ def main():
     # Evaluation
     z_eval, a_eval, y_eval, indices = load_transition_data(validation_data_path, step_size=step_size, hist_length=hist, return_indices=True)
     
-    (start_idx, stop_idx) = indices[3] # Target the specific movie of the validation data
+    (start_idx, stop_idx) = indices[2] # Target the specific movie of the validation data
     
     # Extract only one sliding window (last available state in that trajectory)
     # Shape becomes (hist, 384) instead of (batch, hist, 384)
-    z_hist_np = z_eval[start_idx]
-    a_hist_np = a_eval[start_idx]
+    z_hist_np = z_eval[start_idx:stop_idx]
+    a_hist_np = a_eval[start_idx:stop_idx]
     y_target_np = y_eval[start_idx + (4 * step_size)]
     
     # 2. Convert to PyTorch Tensors and send to the correct device
@@ -64,16 +64,18 @@ def main():
     ensemble_model.eval()
     
     # 3. Run the prediction
-    losses, actions_evaluated = ensemble_model.predict_action_results(
+    losses, actions_evaluated = ensemble_model.predict_action_losses(
         steps=5, 
-        z_init=z_hist_tensor, 
-        a_init=a_hist_tensor, 
+        z_init=z_hist_tensor[0], 
+        a_init=a_hist_tensor[0], 
         a_pos="all", 
         target=y_target_tensor # Keeps current state
     )
     
 
     eval.plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean')
+
+    eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, a_pos="all")
     return None
 
 
