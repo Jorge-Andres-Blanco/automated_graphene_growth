@@ -915,5 +915,5 @@ def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, a_
     if save_path:
         plt.savefig(save_path, dpi=300)
         print(f"Saved plot to {save_path}")
-
-    plt.show()
+    else:
+        plt.show()
