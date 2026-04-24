@@ -74,7 +74,7 @@ def main():
 
                     plot_path = f"/data/lmcat/Computer_vision/plots/sequence{seq_i}_hist{hist}_step{step_size}_steps{steps}.png"
 
-                    eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, a_pos="all", steps=steps, save_path=plot_path)
+                    eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all", steps=steps, save_path=plot_path)
     
     return None
 

@@ -840,7 +840,7 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
 
 
 @torch.no_grad()
-def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, a_pos="all", steps=5, save_path=None):
+def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, step_size, history, a_pos="all", future_steps=5, save_path=None):
     """
     Simulates a sequence of frames, predicting the optimal action to reach a future 
     target dynamically extracted from the trajectory.
@@ -849,11 +849,16 @@ def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, a_
 
     N = z_sequence.shape[0]
 
+    # Calculate the offsets at the begining and end of the plot
+    horizon_offset = future_steps*step_size
+    context_offset = step_size * history
+
+
     # Only evaluate frames where a future target exists
-    valid_frames = N - steps
+    valid_frames = N - horizon_offset
     
     if valid_frames <= 0:
-        raise ValueError(f"sequence length ({N}) is too short to evaluate a horizon of {steps} steps.")
+        raise ValueError(f"sequence length ({N}) is too short to evaluate a horizon of {future_steps} steps.")
 
     # Pre-allocate arrays for plotting
     pred_actions = np.zeros(valid_frames)
@@ -868,14 +873,14 @@ def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, a_
 
         # z_sequence[i + steps] is the future sliding window. 
         # [-1] to get that specific future frame (not the whole window).
-        target = z_sequence[i + steps][-1]#.clone().to(device)
+        target = z_sequence[i + horizon_offset][-1]#.clone().to(device)
 
         # Real action that was actually executed at time t
         real_actions[i] = a_init[-1].item()
 
         # Predict the best action to reach the future target (t+step)
         pred_a, std_a = ensemble_model.predict_next_step(
-            steps=steps,
+            steps=future_steps,
             z_init=z_init,
             a_init=a_init,
             a_pos=a_pos,
@@ -886,7 +891,7 @@ def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, a_
         std_actions[i] = std_a
 
     # --- PLOTTING ---
-    frames = np.arange(valid_frames)
+    frames = np.arange(valid_frames) + context_offset
     fig, ax = plt.subplots(figsize=(14, 6))
 
     ax.plot(frames, real_actions, label='Real', color='black', linewidth=2, linestyle='--')
@@ -904,7 +909,7 @@ def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, a_
     ax.set_xlim(frames[0], frames[-1])
     ax.set_xlabel("Frame", fontsize = 14)
     ax.set_ylabel("CH4 Flow (sccm)", fontsize = 14)
-    ax.set_title(f"Real vs Predicted Actions (Target = {steps} steps ahead), Possible Actions: {a_pos}", fontsize = 16)
+    ax.set_title(f"Real vs Predicted Actions (Target = {future_steps} steps ahead), Possible Actions: {a_pos}", fontsize = 16)
     ax.tick_params(axis='both', labelsize = 12)
     ax.legend(loc="upper right")
     ax.grid(True, linestyle=':', alpha=0.7)

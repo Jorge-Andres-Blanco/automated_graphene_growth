@@ -14,7 +14,7 @@ def main():
     validation_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\validation_data")
 
 
-    hist = 10
+    hist = 1
     step_size = 4
     context_needed = hist*step_size
     train = False
@@ -75,7 +75,7 @@ def main():
 
     eval.plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean')
 
-    eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, a_pos="all")
+    eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all")
     return None
 
 
