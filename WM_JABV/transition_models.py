@@ -53,6 +53,9 @@ class TransitionModel(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_hidden_layers = num_hidden_layers
 
+        self.register_buffer('a_min', torch.tensor(0.0))
+        self.register_buffer('a_max', torch.tensor(15.0))
+
 
         input_dim = latent_dim*history + action_dim*history
 
@@ -80,11 +83,15 @@ class TransitionModel(nn.Module):
             pred_z : torch.Tensor with shape (batch_size, latent_dim)
               
         """
+        actions_clamped = torch.clamp(a_hist, min=self.a_min, max=self.a_max)
 
+        a_scaled = (2 * (actions_clamped - self.a_min) / (self.a_max - self.a_min)) - 1.0 # Maps action values from [-1,1]
+
+        # Flatten
         batch_size = z_hist.shape[0]
 
         z_hist_flat = z_hist.reshape(batch_size, -1)
-        a_hist_flat = a_hist.reshape(batch_size, -1)
+        a_hist_flat = a_scaled.reshape(batch_size, -1)
 
         x = torch.cat([z_hist_flat, a_hist_flat], dim=1)
 
