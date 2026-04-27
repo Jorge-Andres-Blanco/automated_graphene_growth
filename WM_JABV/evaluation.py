@@ -10,16 +10,35 @@ from sklearn.decomposition import PCA
 
 def evaluate_transition_model(model: TransitionModel, z_eval:np.ndarray, a_eval:np.ndarray, y_eval:np.ndarray):
     """
-    Parameters:
-        model: trained TransitionModel
-        z_eval: np.ndarray (T, 384) — latent states
-        a_eval: np.ndarray (T, 1) — action sequence
-        y_eval: np.ndarray (T, 384) — observed states
+    Evaluates a trained TransitionModel on a given dataset, computing L2 distance,
+    cosine similarity, and MSE loss between predicted and actual states. Also plots
+    a PCA reduction of the trajectories and the step-wise metrics.
+    
+    Parameters
+    ----------
+    model : TransitionModel
+        The trained TransitionModel to evaluate.
+    z_eval : np.ndarray
+        The input history of latent states. Shape: (T, history, 384).
+    a_eval : np.ndarray
+        The input history of action sequences. Shape: (T, history, action_dim).
+    y_eval : np.ndarray
+        The true target latent states. Shape: (T, 384).
+        
+    Returns
+    -------
+    l2_distances : torch.Tensor
+        Step-wise L2 distances between predicted and actual states. Shape: (T,).
+    cos_similarities : torch.Tensor
+        Step-wise cosine similarities between predicted and actual states. Shape: (T,).
+    mse_loss : float
+        The mean squared error loss over the entire evaluation set.
+        
+    Hardcoded Elements
+    ------------------
+    - PCA components: Hardcoded to 2 for 2D visualization (`PCA(n_components=2)`).
+    - Plot styling: Figure size (12, 5), colors, subplots arrangement.
     """
-
-    #   # Compare y_pred vs y
-    #   # Plot with PCA or UMAP
-    #   # Compute per-step cosine similarity
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     model.to(device)
@@ -74,6 +93,37 @@ def evaluate_transition_model(model: TransitionModel, z_eval:np.ndarray, a_eval:
 
 def evaluate_on_trajectory(model, z_traj, a_traj, y_traj):
 
+    """
+    Evaluates a TransitionModel autoregressively across an entire trajectory, 
+    feeding its own predictions back as input for subsequent steps.
+    
+    Parameters
+    ----------
+    model : TransitionModel
+        The trained TransitionModel to evaluate.
+    z_traj : np.ndarray
+        The sequence of true latent states. Expected shape: (T, history, 384).
+    a_traj : np.ndarray
+        The sequence of actions taken. Expected shape: (T, history, action_dim).
+    y_traj : np.ndarray
+        The sequence of target latent states. Expected shape: (T, 384).
+        
+    Returns
+    -------
+    pca_tuple : tuple of np.ndarray
+        A tuple containing `(y_pca, y_pred_pca)`, which are the 2D PCA representations 
+        of the true and predicted trajectories, respectively. Shapes: (T, 2), (T, 2).
+    l2_distances : np.ndarray
+        Step-wise L2 distances. Shape: (T,).
+    cos_similarities : np.ndarray
+        Step-wise cosine similarities. Shape: (T,).
+        
+    Hardcoded Elements
+    ------------------
+    - Latent dimension: Hardcoded to 384 for the allocation of `z_predicted_array`.
+    - PCA components: Hardcoded to 2.
+    """
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     model.to(device)
@@ -116,6 +166,32 @@ def evaluate_on_trajectory(model, z_traj, a_traj, y_traj):
 
 def plot_trajectory_evaluation(y_pca, y_pred_pca, l2_distances, cos_similarities):
 
+    """
+    Plots the true vs predicted trajectory in a 2D PCA space, along with step-wise 
+    L2 distance and cosine similarity metrics.
+    
+    Parameters
+    ----------
+    y_pca : np.ndarray
+        The PCA-reduced true trajectory. Shape: (T, 2).
+    y_pred_pca : np.ndarray
+        The PCA-reduced predicted trajectory. Shape: (T, 2).
+    l2_distances : np.ndarray or torch.Tensor
+        Step-wise L2 distances. Shape: (T,).
+    cos_similarities : np.ndarray or torch.Tensor
+        Step-wise cosine similarities. Shape: (T,).
+        
+    Returns
+    -------
+    None
+        Displays the generated matplotlib figure.
+        
+    Hardcoded Elements
+    ------------------
+    - Plot styling: Figure size (12, 5), scatter point sizes (s=20), alphas, 
+      colors (blue, red, black), subplots (1x3).
+    """
+
     # PCA: one trajectory as a line
     plt.figure(figsize=(12, 5)) 
     plt.subplot(1, 3, 1)
@@ -148,18 +224,35 @@ def plot_trajectory_evaluation(y_pca, y_pred_pca, l2_distances, cos_similarities
 
 
 def evaluate_ensemble_transition_model(ensemble_model: EnsembleTransitionModel, z_data: np.ndarray, a_data: np.ndarray, y_data: np.ndarray):
-
     """
-    Parameters:
-        ensemble_model: trained EnsembleTransitionModel
-        z_data: np.ndarray (T, 384) — latent states
-        a_data: np.ndarray (T, 2) — action sequence
-        y_data: np.ndarray (T, 384) — observed states
+    Evaluates a trained EnsembleTransitionModel on a dataset by computing metrics 
+    between the ensemble mean predictions and actual states.
+    
+    Parameters
+    ----------
+    ensemble_model : EnsembleTransitionModel
+        The trained ensemble model to evaluate.
+    z_data : np.ndarray
+        The input history of latent states. Shape: (T, history, 384).
+    a_data : np.ndarray
+        The input history of action sequences. Shape: (T, history, action_dim).
+    y_data : np.ndarray
+        The true target latent states. Shape: (T, 384).
+        
+    Returns
+    -------
+    l2_distances : torch.Tensor
+        Step-wise L2 distances. Shape: (T,).
+    cos_similarities : torch.Tensor
+        Step-wise cosine similarities. Shape: (T,).
+    mse_loss : float
+        Mean squared error loss of the ensemble mean prediction.
+        
+    Hardcoded Elements
+    ------------------
+    - PCA components: Hardcoded to 2 for visualization.
+    - Plot styling: Figure size (12, 5), colors, scatter settings.
     """
-
-    #   # Compare y_pred vs y
-    #   # Plot with PCA or UMAP
-    #   # Compute per-step cosine similarity
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     ensemble_model.to(device)
@@ -213,6 +306,37 @@ def evaluate_ensemble_transition_model(ensemble_model: EnsembleTransitionModel, 
 
 def evaluate_on_trajectory(model, z_traj, a_traj, y_traj):
 
+    """
+    Evaluates a TransitionModel autoregressively across an entire trajectory, 
+    feeding its own predictions back as input for subsequent steps.
+    
+    Parameters
+    ----------
+    model : TransitionModel
+        The trained TransitionModel to evaluate.
+    z_traj : np.ndarray
+        The sequence of true latent states. Expected shape: (T, history, 384).
+    a_traj : np.ndarray
+        The sequence of actions taken. Expected shape: (T, history, action_dim).
+    y_traj : np.ndarray
+        The sequence of target latent states. Expected shape: (T, 384).
+        
+    Returns
+    -------
+    pca_tuple : tuple of np.ndarray
+        A tuple containing `(y_pca, y_pred_pca)`, which are the 2D PCA representations 
+        of the true and predicted trajectories, respectively. Shapes: (T, 2), (T, 2).
+    l2_distances : np.ndarray
+        Step-wise L2 distances. Shape: (T,).
+    cos_similarities : np.ndarray
+        Step-wise cosine similarities. Shape: (T,).
+        
+    Hardcoded Elements
+    ------------------
+    - Latent dimension: Hardcoded to 384 for the allocation of `z_predicted_array`.
+    - PCA components: Hardcoded to 2.
+    """
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     model.to(device)
@@ -253,6 +377,38 @@ def evaluate_on_trajectory(model, z_traj, a_traj, y_traj):
 
 
 def evaluate_ensemble_on_trajectory(ensemble_model: EnsembleTransitionModel, z_traj: np.ndarray, a_traj: np.ndarray, y_traj: np.ndarray):
+
+    """
+    Evaluates an EnsembleTransitionModel autoregressively across an entire trajectory.
+    At each step, it feeds the mean of the ensemble predictions back into the model 
+    as the latent state for the next step.
+    
+    Parameters
+    ----------
+    ensemble_model : EnsembleTransitionModel
+        The trained ensemble model to evaluate.
+    z_traj : np.ndarray
+        The sequence of true latent states. Expected shape: (T, history, 384).
+    a_traj : np.ndarray
+        The sequence of actions taken. Expected shape: (T, history, action_dim).
+    y_traj : np.ndarray
+        The sequence of target latent states. Expected shape: (T, 384).
+        
+    Returns
+    -------
+    pca_tuple : tuple of np.ndarray
+        A tuple `(y_pca, y_pred_pca)` containing the 2D PCA representations of the 
+        true and predicted trajectories. Shapes: (T, 2), (T, 2).
+    l2_distances : np.ndarray
+        Step-wise L2 distances. Shape: (T,).
+    cos_similarities : np.ndarray
+        Step-wise cosine similarities. Shape: (T,).
+        
+    Hardcoded Elements
+    ------------------
+    - Latent dimension: Hardcoded to 384 for the allocation of `z_predicted_array`.
+    - PCA components: Hardcoded to 2.
+    """
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -749,6 +905,16 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
         loss at each specific future step.
     save_path : str or pathlib.Path, optional
         If provided, saves the figure to this location.
+            
+        Returns
+        -------
+        None
+            Displays or saves the generated plot.
+            
+        Hardcoded Elements
+        ------------------
+        - Plot styling: Figure size (14, 6), custom hex colors for best action vs others.
+        - Visualization limits: x-axis limits dynamically set using `-0.5` offsets.
     """    
 
     # Force inputs into standard NumPy arrays for matplotlib compatibility
@@ -844,6 +1010,37 @@ def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, st
     """
     Simulates a sequence of frames, predicting the optimal action to reach a future 
     target dynamically extracted from the trajectory.
+    
+    Parameters
+    ----------
+    ensemble_model : EnsembleTransitionModel
+        The trained ensemble model used to predict action losses.
+    z_sequence : np.ndarray or torch.Tensor
+        The sliding-windowed sequence of latent states. Shape: (N, history, 384).
+    a_sequence : np.ndarray or torch.Tensor
+        The sliding-windowed sequence of actions. Shape: (N, history, action_dim).
+    step_size : int
+        The step size between sequence frames.
+    history : int
+        The history length used in each window.
+    a_pos : str, optional
+        The action space evaluation strategy. Defaults to "all".
+    future_steps : int, optional
+        The lookahead horizon for predictions. Defaults to 5.
+    save_path : str or pathlib.Path, optional
+        If provided, saves the generated plot to this path.
+        
+    Returns
+    -------
+    None
+        Displays or saves the plotted actions over time.
+        
+    Hardcoded Elements
+    ------------------
+    - Plot styling: Figure size (14, 6), axis limits (y-axis limited to 0-20),
+      fill opacity (alpha=0.1), colors, labels, and grid settings.
+    - Offsets computation: Uses `future_steps * step_size` and `step_size * history`
+      to calculate the frame alignment between current context and future targets.
     """
     #device = next(model.parameters()).device
 

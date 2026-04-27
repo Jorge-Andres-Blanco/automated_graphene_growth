@@ -20,9 +20,9 @@ def main():
     train_data_path = Path("/data/lmcat/Computer_vision/training_data")
     validation_data_path = Path("/data/lmcat/Computer_vision/validation_data")
 
-    step_size_list = [2,4,15,30,60,90]
+    step_size_list = [4,15,30,60,90]
     sequence_indices = range(0,4)
-    steps_in_advance = range(1,6)
+    steps_ahead = 5
 
     for hist in history_list:
         for step_size in step_size_list:
@@ -70,11 +70,10 @@ def main():
                 ensemble_model.to(device)
                 ensemble_model.eval()
                     
-                for steps in steps_in_advance:
 
-                    plot_path = f"/data/lmcat/Computer_vision/plots/sequence{seq_i}_hist{hist}_step{step_size}_steps{steps}.png"
+                plot_path = f"/data/lmcat/Computer_vision/plots/sequence{seq_i}_hist{hist}_step{step_size}_steps{steps_ahead}.png"
 
-                    eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all", steps=steps, save_path=plot_path)
+                eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all", future_steps=steps_ahead, save_path=plot_path)
     
     return None
 
