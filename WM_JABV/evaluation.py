@@ -1043,12 +1043,11 @@ def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, st
       to calculate the frame alignment between current context and future targets.
     """
     #device = next(model.parameters()).device
-
     N = z_sequence.shape[0]
 
     # Calculate the offsets at the begining and end of the plot
     horizon_offset = future_steps*step_size
-    context_offset = step_size * history
+    context_offset = step_size * (history-1)
 
 
     # Only evaluate frames where a future target exists
