@@ -33,7 +33,14 @@ def main():
     for step_size in step_size_list:
         for normalization in normalization_list:
 
-            ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=hidden_dimension, num_hidden_layers=2, history=hist)
+            ensemble_model = EnsembleTransitionModel(num_models=5,
+                                                     latent_dim=384,
+                                                     action_dim=1,
+                                                     hidden_dim=hidden_dimension,
+                                                     normalization=normalization,
+                                                     activation=activation,
+                                                     num_hidden_layers=2,
+                                                     history=hist)
             model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
 
             # Training/calling the model

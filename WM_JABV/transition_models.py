@@ -31,7 +31,7 @@ class TransitionModel(nn.Module):
 
     """
     
-    def __init__(self, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history = 5, norm = "batch", activation = "relu", dropout = 0.15):
+    def __init__(self, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history = 5, normalization = "batch", activation = "relu", dropout = 0.15):
         """
         How to use:
         
