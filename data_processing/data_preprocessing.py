@@ -5,6 +5,22 @@ import os
 
 from dinov2_encoder import DinoEncoder
 
+"""
+Structure of the data files:
+    [
+    (
+    "path_to_data_file",
+    "file_name",
+    scan_number
+    ),
+    (
+    "another_path",
+    "another_file_name",
+    scan_number
+    )
+    ]
+"""
+
 DATA_FILES = [
         (
          "/data/lmcat/inhouse/20260312/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_1_120326_camera/CV_test_Gr_1_120326_camera_0001",
@@ -34,6 +50,11 @@ DATA_FILES = [
          "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_6_100426_camera/Gr_6_100426_camera_0001/",
          "Gr_6_100426_camera_0001.h5",
             1
+        ),
+        (
+         "/data/lmcat/inhouse/20260428/ihma832/id10-surf/20260401/RAW_DATA/Gr_1_280426_camera/Gr_1_280426_camera_0001/",
+         "Gr_1_280426_camera_0001.h5",
+            3
         )
     ]
 

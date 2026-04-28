@@ -5,6 +5,21 @@ from pathlib import Path
 def get_npy_file_shape(file_path):
     """
     Reads the shape of a .npy file instantly without loading it into RAM.
+
+    Parameters
+    ----------
+    file_path : str or pathlib.Path
+        The absolute or relative path to the target .npy file.
+
+    Returns
+    -------
+    shape : tuple
+        A tuple representing the dimensions of the NumPy array stored in the file.
+
+    Hardcoded Elements
+    ------------------
+    - mmap_mode: Hardcoded to 'r' (read-only memory-mapped mode) to prevent 
+      modifications and avoid loading the entire array into memory.
     """
     # 'r' opens it in read-only memory-mapped mode
     mmap_array = np.load(file_path, mmap_mode='r')
@@ -12,20 +27,40 @@ def get_npy_file_shape(file_path):
     return mmap_array.shape
 
 
-def load_transition_data(folder_path, step_size, hist_length, return_indices = False):
+def load_transition_data(folder_path, step_size, hist_length, return_indices=False):
 
     """
-    ### Parameters:
-        folder_path: path with the data files
-        step_size: gap between one measurement and the next
-        hist_length: number of measurements to give to the model
-        return_indices: returns the indices (start, stop) for each sequence.
+    Loads transition data from sequence and action .npy files located in a directory.
 
-    ### Returns:
-        z_n, a_n, y_n
-            z_n np.array (N, hist_length,384) with the cls tokens
-            a_n np.array (N, hist_length, 1) with the actions (CH4 values)
-            z_n np.array (N, 384) with the next (target) class token 
+    Parameters
+    ----------
+    folder_path : str or pathlib.Path
+        Path to the directory containing the data files.
+    step_size : int
+        The gap (stride) between one measurement and the next.
+    hist_length : int
+        The number of historical measurements to provide as context to the model.
+    return_indices : bool, optional
+        If True, returns the logical indices (start, stop) for each sequence chunk. 
+        Defaults to False.
+
+    Returns
+    -------
+    z_n : np.ndarray
+        The context cls tokens. Shape: (N, hist_length, 384).
+    a_n : np.ndarray
+        The context actions (CH4 values). Shape: (N, hist_length, 1).
+    y_n : np.ndarray
+        The next (target) class token. Shape: (N, 384).
+    indices : list of tuples, optional
+        A list of tuples formatted as `(start_index, stop_index)` mapping each sequence.
+        Returned only if `return_indices=True`.
+
+    Hardcoded Elements
+    ------------------
+    - Latent dimension: Assumed to be 384 based on the DINOv2 embeddings shape.
+    - Action dimension: Assumed to be 1 (CH4 flow).
+    - File matching: Hardcoded to glob for "*sequence*.npy" and "*CH4*.npy" files.
     """
 
     cls_files = sorted(folder_path.glob("*sequence*.npy"), key=(lambda p: int(p.stem.split('_')[-1])))
@@ -104,6 +139,11 @@ def get_scenes_indices_from_files(cls_files, hist_length, step_size):
     list of tuples
         A list of indices formatted as `(file_num, start_index, stop_index)` mapping
         valid sequence chunks for the dataloader.
+        
+    Hardcoded Elements
+    ------------------
+    - Chunk calculation logic: Scene length is hardcoded to be the maximum between the 
+      required `context_needed` and the shortest file length in the dataset.
     """
 
     context_needed = hist_length * step_size
@@ -157,10 +197,12 @@ def load_transition_data_from_scene(file_path, scene_indices, hist_length, step_
 
     Returns
     -------
-    tuple of np.ndarray
-        z_list : Array of shape (Total_Samples, hist_length, latent_dim). The context cls tokens.
-        a_list : Array of shape (Total_Samples, hist_length, action_dim). The context actions.
-        y_list : Array of shape (Total_Samples, latent_dim). The target cls tokens to be predicted.
+    z_list : np.ndarray
+        The context cls tokens. Shape: (Total_Samples, hist_length, 384).
+    a_list : np.ndarray
+        The context actions. Shape: (Total_Samples, hist_length, 1).
+    y_list : np.ndarray
+        The target cls tokens to be predicted. Shape: (Total_Samples, 384).
 
     Hardcoded Elements
     ------------------
@@ -168,6 +210,9 @@ def load_transition_data_from_scene(file_path, scene_indices, hist_length, step_
       using a uniform distribution (`torch.randint`).
     - File pairing logic: Assumes `cls_files` and `CH4_files` sort identically and their 
       trailing numbers in the filename strictly match.
+    - Latent dimension: Assumed to be 384 based on the DINOv2 embeddings shape.
+    - Action dimension: Assumed to be 1 (CH4 flow).
+    - File matching: Hardcoded to glob for "*sequence*.npy" and "*CH4*.npy" files.
     """
 
     cls_files = sorted(file_path.glob("*sequence*.npy"), key=(lambda p: int(p.stem.split('_')[-1])))
