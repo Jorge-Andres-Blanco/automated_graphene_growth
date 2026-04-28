@@ -12,8 +12,10 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--hiddim', type=int, required=True)
+    parser.add_argument('--activation', type=str, default='relu')
     args = parser.parse_args()
-    hiddim_list = [args.hiddim]
+    activation = args.activation
+    hidden_dimension = args.hiddim
     hist = 1
 
 
@@ -22,15 +24,17 @@ def main():
     train_data_path = Path("/data/lmcat/Computer_vision/training_data")
     validation_data_path = Path("/data/lmcat/Computer_vision/validation_data")
 
-    step_size_list = [4,15,30,60]
+    step_size_list = [4,15,30]
+    normalization_list = ["batch", "layer", "instance"]
     sequence_indices = range(0,4)
     steps_ahead = 5
 
-    for hidden_dimension in hiddim_list:
-        for step_size in step_size_list:
+    
+    for step_size in step_size_list:
+        for normalization in normalization_list:
 
             ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=hidden_dimension, num_hidden_layers=2, history=hist)
-            model_name_prefix = f"/data/lmcat/Computer_vision/models/bagging_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
+            model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
 
             # Training/calling the model
             try:
@@ -76,7 +80,7 @@ def main():
                 plot_path = f"/data/lmcat/Computer_vision/plots/sequence{seq_i}_hist{hist}_step{step_size}_hiddim{hidden_dimension}.png"
 
                 eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all", future_steps=steps_ahead, save_path=plot_path)
-    
+
     return None
 
 

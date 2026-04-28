@@ -31,7 +31,7 @@ class TransitionModel(nn.Module):
 
     """
     
-    def __init__(self, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history = 5):
+    def __init__(self, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history = 5, norm = "batch", activation = "relu", dropout = 0.15):
         """
         How to use:
         
@@ -62,9 +62,38 @@ class TransitionModel(nn.Module):
 
         layers = [nn.Linear(input_dim, hidden_dim), nn.ReLU()]
 
+
+        # Normalization
+        if normalization == "batch":
+            normalize = nn.BatchNorm1d(hidden_dim)
+        elif normalization == "layer":
+            normalize = nn.LayerNorm(hidden_dim)
+        elif normalization == "instance":
+            normalize = nn.InstanceNorm1d(hidden_dim)
+        else:
+            raise ValueError("Invalid normalization. Use 'batch', 'layer', or 'instance'.")
+
+        normalization = normalize
+
+        # Activation
+        
+        if activation == "relu":
+            activation = nn.ReLU()
+        elif activation == "leaky_relu":
+            activation = nn.LeakyReLU()
+        elif activation == "sigmoid":
+            activation = nn.Sigmoid()
+        elif activation == "tanh":
+            activation = nn.Tanh()
+        else:
+            raise ValueError("Invalid activation. Use 'relu', 'leaky_relu', 'sigmoid', or 'tanh'.")
+
+        
+        # Structure
+
         for _ in range(num_hidden_layers):
         
-            layers += [nn.Linear(hidden_dim, hidden_dim), nn.BatchNorm1d(hidden_dim), nn.ReLU(), nn.Dropout(p=0.15)]
+            layers += [nn.Linear(hidden_dim, hidden_dim), normalization, activation, nn.Dropout(p=dropout)]
         
         layers.append(nn.Linear(hidden_dim, latent_dim))
 
