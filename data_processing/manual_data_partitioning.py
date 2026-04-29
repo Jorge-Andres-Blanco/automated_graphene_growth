@@ -14,11 +14,16 @@ evaluation_data_dict = {
     "_0_": [(1800,2200)],
     "_1_": [(2600,2900)],
     "_2_": [(1700,2100)],
-    "_4_": [(0,500)]
+    "_3_": [(0,0)],
+    "_4_": [(0,500)],
+    "_5_": [(0,0)],
+    "_6_": [(0,0)],
+    "_7_": [(0,0)],
+    "_8_": [(0,0)],
 }
 
-i_train_movie = 0
-i_eval_movie = 0
+i_train_sequence = 0
+i_eval_sequence = 0
 i_train_CH4 = 0
 i_eval_CH4 = 0
 
@@ -39,10 +44,10 @@ for num, intervals in evaluation_data_dict.items():
 
                 # Only save if the training slice actually has elements
                 if train_data.shape[0] > 0:
-                    if "movie" in str(file_name):
-                        np.save(save_folder_training+f"train_movie_{i_train_movie}.npy", train_data)
-                        print(f"Saved train movie {i_train_movie} from {file_name}, start: {start_train}, stop: {start_eval}")
-                        i_train_movie += 1
+                    if "sequence" in str(file_name):
+                        np.save(save_folder_training+f"train_sequence_{i_train_sequence}.npy", train_data)
+                        print(f"Saved train sequence {i_train_sequence} from {file_name}, start: {start_train}, stop: {start_eval}")
+                        i_train_sequence += 1
                     else:
                         np.save(save_folder_training+f"train_CH4_{i_train_CH4}.npy", train_data)
                         print(f"Saved train CH4 {i_train_CH4} from {file_name}, start: {start_train}, stop: {start_eval}")
@@ -50,10 +55,10 @@ for num, intervals in evaluation_data_dict.items():
 
                 # Only save if the evaluation slice actually has elements
                 if eval_data.shape[0] > 0:
-                    if "movie" in str(file_name):
-                        np.save(save_folder_validation+f"eval_movie_{i_eval_movie}.npy", eval_data)
-                        print(f"Saved evaluation movie {i_eval_movie} from {file_name}, start: {start_eval}, stop: {stop_eval}")
-                        i_eval_movie += 1
+                    if "sequence" in str(file_name):
+                        np.save(save_folder_validation+f"eval_sequence_{i_eval_sequence}.npy", eval_data)
+                        print(f"Saved evaluation sequence {i_eval_sequence} from {file_name}, start: {start_eval}, stop: {stop_eval}")
+                        i_eval_sequence += 1
                     else:
                         np.save(save_folder_validation+f"eval_CH4_{i_eval_CH4}.npy", eval_data)
                         print(f"Saved evaluation CH4 {i_eval_CH4} from {file_name}, start: {start_eval}, stop: {stop_eval}")
@@ -67,12 +72,12 @@ for num, intervals in evaluation_data_dict.items():
 
                         train_data = data[start_train:]
 
-                        if "movie" in str(file_name):
+                        if "sequence" in str(file_name):
 
-                            np.save(save_folder_training+f"train_movie_{i_train_movie}.npy",train_data)
-                            print(f"Saved train movie {i_train_movie} from {file_name}, start: {start_train}, stop: {data.shape[0]}")
+                            np.save(save_folder_training+f"train_sequence_{i_train_sequence}.npy",train_data)
+                            print(f"Saved train sequence {i_train_sequence} from {file_name}, start: {start_train}, stop: {data.shape[0]}")
 
-                            i_train_movie += 1
+                            i_train_sequence += 1
 
                         else:
                             np.save(save_folder_training+f"train_CH4_{i_train_CH4}.npy",train_data)
