@@ -24,10 +24,10 @@ def main():
     train_data_path = Path("/data/lmcat/Computer_vision/training_data")
     validation_data_path = Path("/data/lmcat/Computer_vision/validation_data")
 
-    step_size_list = [4,15,30]
-    normalization_list = ["batch", "layer", "instance"]
+    step_size_list = [15,30]
+    normalization_list = ["batch", "layer"]
     sequence_indices = range(0,4)
-    steps_ahead = 5
+    steps_ahead = 3
 
     
     for step_size in step_size_list:
@@ -86,7 +86,7 @@ def main():
 
                 plot_path = f"/data/lmcat/Computer_vision/plots/sequence{seq_i}_hist{hist}_step{step_size}_hiddim{hidden_dimension}_norm_{normalization}_activation_{activation}.png"
 
-                eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all", future_steps=steps_ahead, save_path=plot_path)
+                eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="closer_7", future_steps=steps_ahead, save_path=plot_path)
 
     return None
 
