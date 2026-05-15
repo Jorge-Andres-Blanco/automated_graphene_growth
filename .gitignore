@@ -11,3 +11,4 @@ see_arrays.py
 *.npz
 *.png
 *.jpg
+verb*.txt

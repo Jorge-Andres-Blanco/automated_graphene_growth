@@ -7,3 +7,4 @@ h5py
 hdf5plugin
 torchvision
 Pillow
+scikit-learn
