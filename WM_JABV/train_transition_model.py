@@ -4,6 +4,7 @@ from WM_JABV.transition_models import TransitionModel, EnsembleTransitionModel
 from data_processing.data_loader import *
 import numpy as np
 import matplotlib.pyplot as plt
+import gc
 
 
 def train_transition_model(z_data:np.ndarray, a_data:np.ndarray, y_data: np.ndarray,
@@ -182,5 +183,8 @@ def train_ensmble_with_bagging(ensemble_model: EnsembleTransitionModel, data_pat
         model, loss = train_transition_model(z_data, a_data, y_data, model=model, save_model_as = model_name, **kwargs)
         
         losses.append(loss)
+
+        del z_data, a_data, y_data
+        gc.collect()
 
     return ensemble_model, np.array(losses)

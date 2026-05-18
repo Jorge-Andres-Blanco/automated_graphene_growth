@@ -12,8 +12,10 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--hiddim', type=int, required=True)
+    parser.add_argument('--activation', type=str, default='relu')
     args = parser.parse_args()
-    hiddim_list = [args.hiddim]
+    activation = args.activation
+    hidden_dimension = args.hiddim
     hist = 1
 
 
@@ -22,33 +24,44 @@ def main():
     train_data_path = Path("/data/lmcat/Computer_vision/training_data")
     validation_data_path = Path("/data/lmcat/Computer_vision/validation_data")
 
-    step_size_list = [4,15,30,60]
+    step_size_list = [15,30]
+    normalization = "layer"
     sequence_indices = range(0,4)
-    steps_ahead = 5
+    
 
-    for hidden_dimension in hiddim_list:
-        for step_size in step_size_list:
+    
+    for step_size in step_size_list:
+        
+        steps_ahead = 2 if step_size == 30 else 4  #This is to predict exactly 1 min in the future.
 
-            ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=hidden_dimension, num_hidden_layers=2, history=hist)
-            model_name_prefix = f"/data/lmcat/Computer_vision/models/bagging_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
+        ensemble_model = EnsembleTransitionModel(num_models=5,
+                                                    latent_dim=384,
+                                                    action_dim=1,
+                                                    hidden_dim=hidden_dimension,
+                                                    normalization=normalization,
+                                                    activation=activation,
+                                                    num_hidden_layers=2,
+                                                    history=hist)
+        
+        model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
 
-            # Training/calling the model
-            try:
-                for i, model in enumerate(ensemble_model.models):
-                    model.load_state_dict(torch.load(f"{model_name_prefix}_transition_model_{i}.pth"))
+        # Training/calling the model
+        try:
+            for i, model in enumerate(ensemble_model.models):
+                model.load_state_dict(torch.load(f"{model_name_prefix}_transition_model_{i}.pth"))
+        
+        except FileNotFoundError:
             
-            except FileNotFoundError:
-                
-                print(f"Model {i} not found. Training from scratch...")
-                ensemble_model, losses = ttm.train_ensmble_with_bagging(ensemble_model=ensemble_model,
-                                                                        data_path = train_data_path,
-                                                                        save_prefix = model_name_prefix,
-                                                                        epochs=4, lr=1e-3, batch_size=64,
-                                                                        step_size = step_size)
-                
-                losses_mean = np.mean(losses, axis=0)
-                losses_std = np.std(losses, axis=0)
-                print(f"Ensemble training completed. Last loss mean and std: {losses_mean[-1]}, {losses_std[-1]}")
+            print(f"Model {i} not found. Training from scratch...")
+            ensemble_model, losses = ttm.train_ensmble_with_bagging(ensemble_model=ensemble_model,
+                                                                    data_path = train_data_path,
+                                                                    save_prefix = model_name_prefix,
+                                                                    epochs=4, lr=1e-3, batch_size=64,
+                                                                    step_size = step_size)
+            
+            losses_mean = np.mean(losses, axis=0)
+            losses_std = np.std(losses, axis=0)
+            print(f"Ensemble training completed. Last loss mean and std: {losses_mean[-1]}, {losses_std[-1]}")
 
 
             # Evaluation
@@ -73,10 +86,10 @@ def main():
                 ensemble_model.eval()
                     
 
-                plot_path = f"/data/lmcat/Computer_vision/plots/sequence{seq_i}_hist{hist}_step{step_size}_hiddim{hidden_dimension}.png"
+                plot_path = f"/data/lmcat/Computer_vision/plots/sequence{seq_i}_hist{hist}_step{step_size}_hiddim{hidden_dimension}_norm_{normalization}_activation_{activation}.png"
 
-                eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all", future_steps=steps_ahead, save_path=plot_path)
-    
+                eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="closer_7", future_steps=steps_ahead, save_path=plot_path)
+
     return None
 
 
