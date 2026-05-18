@@ -1,6 +1,6 @@
 import time
-from src.environment.LMCat_control import Controller
-from src.environment.LMCat_control import Observer
+from .LMCat_control import Controller
+from .LMCat_control import Observer
 
 class ReactorEnv:
     """
@@ -26,39 +26,35 @@ class ReactorEnv:
         """
         # Fetch the most critical measurements for the World Model
         measurements = self.observer.get_last_measurements(
-            'Image', 'CH4', 'Temperature', 'Pressure', 
+            'Image', 'CH4', 
             num=num_frames, 
             scan=scan
         )
         return measurements
 
-    def step(self, ch4_action, wait_time=2.0):
+
+    def act(self, ch4_action=None):
         """
-        Applies an action to the reactor and returns the new observed state.
+        Applies an action to the reactor.
         
         Args:
             ch4_action (float): The target CH4 flow rate.
-            wait_time (float): Time in seconds to wait for the system to stabilize 
-                               before taking the next observation.
                                
         Returns:
             dict: The new observed state after the action is applied.
         """
         # 1. Apply the action
-        print(f"Applying action: Setting CH4 flow to {ch4_action:.2f} sccm")
-        self.controller.set_flowCH4(ch4_action)
-        
-        # 2. Wait for the physical system to respond (gas travel time, sensor delay)
-        # Note: In a real-time system, this wait_time should match your model's step_size interval
-        time.sleep(wait_time)
-        
-        # 3. Observe the new state
-        new_state = self.observe(num_frames=1)
-        
-        return new_state
+        # If action is none, keep doing the same
+        if ch4_action is None:
+            ch4_action = self.observe()['CH4'][-1]
 
-    # --- Additional specific control methods if needed ---
-    def set_background_gases(self, ar_flow, h2_flow):
-        """Helper to set background gases that don't change every step."""
-        self.controller.set_flowAr(ar_flow)
-        self.controller.set_flowH2(h2_flow)
+        print(f"Applying action: Setting CH4 flow to {ch4_action:.2f} sccm.")
+        
+        return self.controller.set_flow_CH4(ch4_action) 
+    
+
+    # Not necessary
+    def set_background_gases(self, ar_flow = 200, h2_flow = 20):
+        """Helper to set background gases that shouldn't change."""
+        self.controller.set_flow_Ar(ar_flow)
+        self.controller.set_flow_H2(h2_flow)
