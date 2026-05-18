@@ -3,7 +3,7 @@ from pathlib import Path
 
 # Import your new classes from the src package
 from src.models.dinov2_encoder import DinoEncoder
-from src.data_handling.hdf5_processor import HDF5Processor
+from src.data_handling import HDF5Processor
 
 """
 Structure of the data files:

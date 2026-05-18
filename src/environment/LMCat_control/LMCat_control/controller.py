@@ -1,7 +1,7 @@
 from blissclient import BlissClient
 
 
-class LMCatController:
+class Controller:
     """
     Controller interface for the LMCat reactor gas flows and pressure PIDs.
 
