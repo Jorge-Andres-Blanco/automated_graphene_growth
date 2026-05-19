@@ -1,4 +1,6 @@
-import WM_JABV.evaluation as eval
+from src.utils.evaluation import Evaluator
+
+eval = Evaluator()
 
 eval.plot_uncertainty_ratio("C:\\Program Files\\MyPrograms\\automated_graphene_growth\\")
 

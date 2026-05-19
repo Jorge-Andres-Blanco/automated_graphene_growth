@@ -40,6 +40,7 @@ class Trainer:
 
         Returns:
             trained model
+            losses array
         """
 
         device = "cuda" if torch.cuda.is_available() else "cpu"

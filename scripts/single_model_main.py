@@ -28,7 +28,7 @@ def main():
     if train:
         
         z_train, a_train, y_train = train_data_loader.load_full_dataset()
-        model = trainer.train_transition_model(z_train, a_train, y_train, model=model, epochs=50, lr=1e-3, batch_size=64, save_model_as = "transition_model.pth")
+        model, losses = trainer.train_transition_model(z_train, a_train, y_train, model=model, epochs=50, lr=1e-3, batch_size=64, save_model_as = "transition_model.pth")
         trainer.plot_training_loss_vs_epoch()
     
     else:
@@ -36,7 +36,7 @@ def main():
         model.load_state_dict(torch.load("transition_model.pth"))
 
 
-    z_eval, a_eval, y_eval, indices = validation_data_loader.load_full_dataset()
+    z_eval, a_eval, y_eval, indices = validation_data_loader.load_full_dataset(return_indices=True)
 
     l2_distances, cos_similarities, mse_loss = evalua.evaluate_transition_model(model, z_eval, a_eval, y_eval)
 
