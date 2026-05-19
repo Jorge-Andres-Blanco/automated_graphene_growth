@@ -79,7 +79,7 @@ DATA_FILES = [
 def main():
 
     # Inicialize the processor
-    processor = HDF5Processor(data_files=DATA_FILES)
+    processor = HDF5Processor(encoder=DinoEncoder(), data_files=DATA_FILES)
 
     saving_folder = Path("/data/lmcat/Computer_vision/data_arrays")
     saving_folder.mkdir(parents=True, exist_ok=True) # Ensure the folder exists

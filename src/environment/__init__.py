@@ -1,3 +1,3 @@
-from .LMCat_control import Controller
-from .LMCat_control import Observer
+from .LMCat_control.controller import Controller
+from .LMCat_control.observer import Observer
 from .environment import ReactorEnv

@@ -80,7 +80,7 @@ class HDF5Processor:
     """
     
 
-    def __init__(self, encoder=None, data_files=DATA_FILES):
+    def __init__(self, encoder:DinoEncoder=None, data_files=DATA_FILES):
         """
         Initializes the data loader.
         
@@ -168,3 +168,36 @@ class HDF5Processor:
                 print(f"Saved embeddings to {save_path}")
         
         return embeddings
+    
+    def encode_frames(self, frames):
+    
+        frames = np.stack(frames, axis=0)
+        embeddings = self.encoder.encode_numpy_array(frames, batch_size=16)
+        return embeddings
+
+    @staticmethod
+    def get_frame_from_h5(file_name:str, scan_number:str, frame_number:int):
+
+        with h5py.File(file_name, "r") as f:
+            
+            dataset_path = f"{scan_number}.1/measurement/basler"
+
+            
+            if dataset_path not in f:
+                raise KeyError(f"Path {dataset_path} not found in {file_name}")
+                
+            measurements = f[dataset_path]
+
+            frame = measurements[frame_number]
+
+        return frame
+
+    def get_frame_data(self, movie_num, frame_num):
+
+        movie_path, file_name, scan_number, _ = self.data_files[movie_num]
+
+        full_file_path = os.path.join(movie_path, file_name)
+
+        frame = self.get_frame_from_h5(full_file_path, scan_number, frame_num)
+
+        return frame

@@ -1,9 +1,9 @@
 from pathlib import Path
 import torch
-from data_processing.data_loader import load_transition_data
-import WM_JABV.train_transition_model as ttm
-import WM_JABV.evaluation as eval
-from WM_JABV.transition_models import TransitionModel, EnsembleTransitionModel
+import numpy as np
+from src.data_handling import TransitionDataLoader
+from src.models import Trainer, TransitionModel
+from src.utils.evaluation import Evaluator
 
 
 def main():
@@ -17,23 +17,28 @@ def main():
     step_size = 5
     train = True
     model = TransitionModel(history=hist)
+    trainer = Trainer()
+    evalua = Evaluator()
 
+    train_data_loader = TransitionDataLoader(train_data_path, step_size=step_size, hist_length=hist)
+    validation_data_loader = TransitionDataLoader(validation_data_path, step_size=step_size, hist_length=hist)
+
+    # Training 
     
     if train:
         
-        z_train, a_train, y_train = load_transition_data(train_data_path, step_size = step_size, hist_length = hist)
-        model, losses = ttm.train_transition_model(z_train, a_train, y_train, model=model, epochs=50, lr=1e-3, batch_size=64, save_model_as = "transition_model.pth")
-        ttm.plot_training_loss(losses)
+        z_train, a_train, y_train = train_data_loader.load_full_dataset()
+        model = trainer.train_transition_model(z_train, a_train, y_train, model=model, epochs=50, lr=1e-3, batch_size=64, save_model_as = "transition_model.pth")
+        trainer.plot_training_loss_vs_epoch()
     
     else:
     
         model.load_state_dict(torch.load("transition_model.pth"))
 
 
-    z_eval, a_eval, y_eval, indices = load_transition_data(validation_data_path, step_size = step_size, hist_length = hist, return_indices=True)
-    print (z_eval.shape, a_eval.shape, y_eval.shape)
+    z_eval, a_eval, y_eval, indices = validation_data_loader.load_full_dataset()
 
-    l2_distances, cos_similarities, mse_loss = eval.evaluate_transition_model(model, z_eval, a_eval, y_eval)
+    l2_distances, cos_similarities, mse_loss = evalua.evaluate_transition_model(model, z_eval, a_eval, y_eval)
 
     print(f"MSE Loss on validation data: {mse_loss}")
 
@@ -43,8 +48,8 @@ def main():
         if (f-i) < hist+1:
             print(f"Skipping evaluation for indices {i} to {f} due to insufficient length.")
             continue
-        (y_pca, y_pred_pca), l2_distances, cos_similarities = eval.evaluate_on_trajectory(model, z_eval[i:f], a_eval[i:f], y_eval[i:f])
-        eval.plot_trajectory_evaluation(y_pca, y_pred_pca, l2_distances, cos_similarities)
+        (y_pca, y_pred_pca), l2_distances, cos_similarities = evalua.evaluate_on_trajectory(model, z_eval[i:f], a_eval[i:f], y_eval[i:f])
+        evalua.plot_trajectory_evaluation(y_pca, y_pred_pca, l2_distances, cos_similarities)
 
     return None
 

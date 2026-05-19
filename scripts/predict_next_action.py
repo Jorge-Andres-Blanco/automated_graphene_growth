@@ -1,10 +1,9 @@
 from pathlib import Path
 import torch
 import numpy as np
-from data_processing.data_loader import load_transition_data
-import WM_JABV.train_transition_model as ttm
-import WM_JABV.evaluation as eval
-from WM_JABV.transition_models import *
+from src.data_handling import TransitionDataLoader
+from src.models import EnsembleTransitionModel, Trainer
+from src.utils.evaluation import Evaluator
 
 
 def main():
@@ -19,21 +18,22 @@ def main():
     context_needed = hist*step_size
     train = False
     ensemble_model = EnsembleTransitionModel(num_models=5, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history=hist)
+    trainer = Trainer(lr=1e-3, batch_size=64, epochs=5)
+    train_data_loader = TransitionDataLoader(train_data_path, step_size=step_size, hist_length=hist)
     model_name_prefix = f"bagging_hist{hist}_step{step_size}"
 
     # Training 
     if train:
         
-        ensemble_model, losses = ttm.train_ensmble_with_bagging(ensemble_model=ensemble_model,
-                                                                data_path = train_data_path,
-                                                                save_prefix = model_name_prefix,
-                                                                epochs=5, lr=1e-3, batch_size=64,
-                                                                step_size = step_size)
+        ensemble_model = trainer.train_ensmble_with_bagging(ensemble_model=ensemble_model,
+                                                                data_loader= train_data_loader,
+                                                                save_prefix = model_name_prefix)
         
+        losses = trainer.losses
         losses_mean = np.mean(losses, axis=0)
         losses_std = np.std(losses, axis=0)
 
-        ttm.plot_training_loss(losses_mean)
+        trainer.plot_training_loss_vs_epoch(losses_mean)
         print(f"Ensemble training completed. Last loss mean and std: {losses_mean[-1]}, {losses_std[-1]}")
     
     else:
@@ -43,8 +43,9 @@ def main():
 
 
     # Evaluation
-    z_eval, a_eval, y_eval, indices = load_transition_data(validation_data_path, step_size=step_size, hist_length=hist, return_indices=True)
-    
+    validation_data_loader = TransitionDataLoader(validation_data_path, step_size=step_size, hist_length=hist)
+    z_eval, a_eval, y_eval, indices = validation_data_loader.load_full_dataset(return_indices=True)
+        
     (start_idx, stop_idx) = indices[2] # Target the specific movie of the validation data
     
     # Extract only one sliding window (last available state in that trajectory)
@@ -72,10 +73,10 @@ def main():
         target=y_target_tensor # Keeps current state
     )
     
+    evalua = Evaluator()
+    evalua.plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean')
 
-    eval.plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean')
-
-    eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all")
+    evalua.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all")
     return None
 
 

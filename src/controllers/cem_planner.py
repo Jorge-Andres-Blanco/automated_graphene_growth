@@ -1,12 +1,14 @@
 import torch
 import numpy as np
+from models.transition import EnsembleTransitionModel
+
 
 class CEMPlanner:
     """
     Uses the World Model to evaluate potential future actions 
     and select the optimal path to a target state.
     """
-    def __init__(self, transition_model, horizon=5):
+    def __init__(self, transition_model: EnsembleTransitionModel, horizon:int=5):
         """
         Args:
             transition_model: The trained EnsembleTransitionModel.
@@ -45,7 +47,7 @@ class CEMPlanner:
 
         # 2. Ask the model to simulate the futures
         with torch.no_grad(): # Critical for speed: we are planning, not training!
-            losses, actions_evaluated = self.model.predict_action_losses(
+            losses, actions_evaluated = self.transition_model.predict_action_losses(
                 steps=self.horizon,
                 z_init=current_z,
                 a_init=current_a,
@@ -61,7 +63,7 @@ class CEMPlanner:
         # Average loss across the temporal rollout (axis=2) and ensemble models (axis=1)
         mean_losses = losses_np.mean(axis=(1, 2))
 
-        # 4. Select the optimal action
+        # Select the optimal action
         best_action_idx = np.argmin(mean_losses)
         best_action = actions_np[best_action_idx]
 

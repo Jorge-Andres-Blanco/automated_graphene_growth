@@ -1,10 +1,9 @@
 from pathlib import Path
 import torch
 import numpy as np
-from data_processing.data_loader import load_transition_data
-import WM_JABV.train_transition_model as ttm
-import WM_JABV.evaluation as eval
-from WM_JABV.transition_models import EnsembleTransitionModel
+from src.data_handling import TransitionDataLoader
+from src.utils.evaluation import Evaluator
+from src.models import EnsembleTransitionModel, Trainer
 
 
 def main():
@@ -12,8 +11,6 @@ def main():
     # To be changed according to the executing machine
     train_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\training_data")
     validation_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\validation_data")
-
-
     hist = 15
     step_size = 5
     train = True
@@ -21,12 +18,16 @@ def main():
     
     # Training 
     if train:
+
+        trainer = Trainer(lr=1e-3, batch_size=64, epochs=5)
+        train_data_loader = TransitionDataLoader(train_data_path, step_size=step_size, hist_length=hist)
         
-        ensemble_model, losses = ttm.train_ensmble_with_bagging(ensemble_model=ensemble_model, data_path = train_data_path, save_prefix = "bagging", epochs=5, lr=1e-3, batch_size=64, step_size = step_size)
+        ensemble_model = trainer.train_ensmble_with_bagging(ensemble_model=ensemble_model, data_loader=train_data_loader, save_prefix = "bagging")
+        losses = trainer.losses
         losses_mean = np.mean(losses, axis=0)
         losses_std = np.std(losses, axis=0)
 
-        ttm.plot_training_loss(losses_mean)
+        trainer.plot_training_loss_vs_epoch(losses_mean)
         print(f"Ensemble training completed. Last loss mean and std: {losses_mean[-1]}, {losses_std[-1]}")
     
     else:
@@ -36,10 +37,13 @@ def main():
 
 
     # Evaluation
-    z_eval, a_eval, y_eval, indices = load_transition_data(validation_data_path, step_size = step_size, hist_length = hist, return_indices=True)
-    print(z_eval.shape, a_eval.shape, y_eval.shape)
 
-    l2_distances, cos_similarities, mse_loss = eval.evaluate_ensemble_transition_model(ensemble_model, z_eval, a_eval, y_eval)
+    validation_data_loader = TransitionDataLoader(validation_data_path, step_size=step_size, hist_length=hist)
+    z_eval, a_eval, y_eval, indices = validation_data_loader.load_full_dataset(return_indices=True)
+    
+    evaluator = Evaluator()
+    l2_distances, cos_similarities, mse_loss = evaluator.evaluate_ensemble_transition_model(ensemble_model, z_eval, a_eval, y_eval)
+
 
     print(f"MSE Loss on validation data: {mse_loss}")
 
@@ -49,8 +53,9 @@ def main():
         if (f-i) < hist+1:
             print(f"Skipping evaluation for indices {i} to {f} due to insufficient length.")
             continue
-        (y_pca, y_pred_pca), l2_distances, cos_similarities = eval.evaluate_ensemble_on_trajectory(ensemble_model, z_eval[i:f], a_eval[i:f], y_eval[i:f])
-        eval.plot_trajectory_evaluation(y_pca, y_pred_pca, l2_distances, cos_similarities)
+        
+        (y_pca, y_pred_pca), l2_distances, cos_similarities = evaluator.evaluate_ensemble_on_trajectory(ensemble_model, z_eval[i:f], a_eval[i:f], y_eval[i:f])
+        evaluator.plot_trajectory_evaluation(y_pca, y_pred_pca, l2_distances, cos_similarities)
 
     return None
 

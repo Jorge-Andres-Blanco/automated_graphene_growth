@@ -1,6 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def plot_2_frames(frame_0, frame_1):
+    
+    fig, ax = plt.subplots(1,2)
+    ax[0].imshow(frame_0)
+    ax[1].imshow(frame_1)
+
+    plt.show()
+
+    return None
+
 def compare_images_in_latent_space(img1, img2, z1, z2, cmap='gray'):
     """
     Plots two images side-by-side and displays their L2 distance 
