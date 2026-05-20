@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 from src.models import TransitionModel, EnsembleTransitionModel
-from src.data_handling import DataLoader
+from src.data_handling import TransitionDataLoader
 import numpy as np
 import torch
 import torch.nn as nn

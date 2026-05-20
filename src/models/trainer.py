@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from pathlib import Path
 from src.models import TransitionModel, EnsembleTransitionModel
-from src.data_handling import TransitionDataLoader
 import numpy as np
 import matplotlib.pyplot as plt
 import gc
@@ -128,7 +127,7 @@ class Trainer:
         return None
 
 
-    def train_ensemble_transition_model(self, data_loader: TransitionDataLoader, ensemble_model: EnsembleTransitionModel, save_prefix = ""):
+    def train_ensemble_transition_model(self, data_loader, ensemble_model: EnsembleTransitionModel, save_prefix = ""):
 
         """
         Trains each model in the ensemble on the same data.
@@ -162,7 +161,7 @@ class Trainer:
 
 
 
-    def train_ensmble_with_bagging(self, ensemble_model: EnsembleTransitionModel, data_loader: TransitionDataLoader, save_prefix = ""):
+    def train_ensmble_with_bagging(self, ensemble_model: EnsembleTransitionModel, data_loader, save_prefix = ""):
         """
         Trains an ensemble model using Bootstrap Aggregating (Bagging).
 
