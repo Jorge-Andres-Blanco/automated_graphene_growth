@@ -889,7 +889,7 @@ def plot_evaluation_metrics(data_dir: str | Path):
 
 
 
-def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, aggregate='mean', save_path=None):
+def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, aggregate='mean', ax = None, save_path=None):
     """
     Visualizes the predictive losses for different constant-action sequences.
 
@@ -923,7 +923,10 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
         
     num_actions, num_models, steps = losses.shape
     
-    fig, ax = plt.subplots(figsize=(14, 6))
+    standalone = False
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(14, 6))
+        standalone = True
     
     if aggregate == 'mean':
         # Average across the temporal rollout (steps) first
@@ -995,13 +998,14 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
     ax.set_xlabel("Constant CH4 Action Value", fontsize = 14)
     ax.grid(axis='y', linestyle='--', alpha=0.7)
     
-    plt.tight_layout()
-    
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Saved plot to {save_path}")
+    if standalone:
+        plt.tight_layout()
         
-    plt.show()
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Saved plot to {save_path}")
+            
+        plt.show()
 
 
 
