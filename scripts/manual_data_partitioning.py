@@ -1,13 +1,15 @@
 import numpy as np
 from pathlib import Path
 
-folder_path = Path(r"\\dfs\data\lmcat\Computer_vision\data_arrays")
+#folder_path = Path(r"\\dfs\data\lmcat\Computer_vision\data_arrays")
+folder_path = Path("/data/lmcat/Computer_vision/data_arrays")
 
 data_file_list = list(folder_path.glob("*.npy"))
 
-save_folder_training = "\\\\dfs\data\lmcat\Computer_vision\\training_data\\"
-save_folder_validation = "\\\\dfs\data\lmcat\Computer_vision\\validation_data\\"
-
+#save_folder_training = "\\\\dfs\data\lmcat\Computer_vision\\training_data\\"
+#save_folder_validation = "\\\\dfs\data\lmcat\Computer_vision\\validation_data\\"
+save_folder_training = "/data/lmcat/Computer_vision/training_data/"
+save_folder_validation = "/data/lmcat/Computer_vision/validation_data/"
 
 
 evaluation_data_dict = {
