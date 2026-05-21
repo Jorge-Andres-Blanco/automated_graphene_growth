@@ -1,6 +1,6 @@
 import time
-from .LMCat_control import Controller
-from .LMCat_control import Observer
+from src.environment.LMCat_control.controller import Controller
+from src.environment.LMCat_control.observer import Observer
 
 class ReactorEnv:
     """
