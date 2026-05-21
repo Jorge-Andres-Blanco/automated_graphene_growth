@@ -3,7 +3,7 @@ import h5py
 import hdf5plugin
 import os
 
-from dinov2_encoder import DinoEncoder
+from src.models.dinov2_encoder import DinoEncoder
 
 """
 Structure of the data files:

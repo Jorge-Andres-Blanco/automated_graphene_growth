@@ -354,3 +354,21 @@ class EnsembleTransitionModel(nn.Module):
         next_action_std = best_actions.std().item()
 
         return next_action_pred, next_action_std
+    
+
+    
+    def load_ensemble(self, model_name_prefix):
+        """
+        Loads the pre-trained weights for all models in the ensemble.
+        
+        Args:
+            model_name_prefix (str): Path and prefix of the saved models.
+            device (str): Device to map the loaded tensors to ('cpu' or 'cuda').
+        """
+
+        try:
+            for i, model in enumerate(self.models):
+                model.load_state_dict(torch.load(f"{model_name_prefix}_transition_model_{i}.pth"))
+    
+        except FileNotFoundError:
+            print(f"Model {i} not found")

@@ -1,17 +1,23 @@
 from blissclient import BlissClient
 
 
-class LMCatController:
+class Controller:
     """
     Controller interface for the LMCat reactor gas flows and pressure PIDs.
 
-    This class uses the BlissClient to perform Remote Procedure Calls (RPC) 
-    to a BLISS session, allowing control over Mass Flow Controllers (MFCs) 
-    and pressure regulators.
+    This class uses the BlissClient to control the flow rates over Mass Flow Controllers (MFCs).
 
     Attributes:
         client (BlissClient): The RPC client connected to the BLISS server.
         session: The specific BLISS session context for command execution.
+    
+    REQUIREMENT: 
+    The BLISS session on the lab computer MUST have the following functions defined:
+    - set_flow_CH4(F)
+    # Optional:
+    - set_flow_Ar(F)
+    - set_flow_H2(F)
+    - set_reactor_pressure(P)
 
     Example:
         >>> controller = LMCatController()
@@ -35,7 +41,7 @@ class LMCatController:
 
     
 
-    def set_flowCH4(self, flow_rate):
+    def set_flow_CH4(self, flow_rate):
 
         """
         Sets the CH4 (Methane) flow rate.
@@ -47,11 +53,11 @@ class LMCatController:
             varies: The result of the remote call, typically confirming the setpoint.
         """
 
-        future = self.session.call("set_flowCH4", flow_rate)
+        future = self.session.call("set_flow_CH4", flow_rate)
         return future.get()
     
     
-    def set_flowAr(self, flow_rate):
+    def set_flow_Ar(self, flow_rate):
 
         """
         Sets the Ar (Argon) flow rate.
@@ -63,11 +69,11 @@ class LMCatController:
             varies: Confirmation from the controller.
         """
 
-        future = self.session.call("set_flowAr", flow_rate)
+        future = self.session.call("set_flow_Ar", flow_rate)
         return future.get()
     
 
-    def set_flowH2(self, flow_rate):
+    def set_flow_H2(self, flow_rate):
 
         """
         Sets the H2 (Hydrogen) flow rate.
@@ -79,7 +85,7 @@ class LMCatController:
             varies: Confirmation from the controller.
         """
 
-        future = self.session.call("set_flowH2", flow_rate)
+        future = self.session.call("set_flow_H2", flow_rate)
         return future.get()
     
 

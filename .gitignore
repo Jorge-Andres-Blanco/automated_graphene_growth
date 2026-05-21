@@ -12,3 +12,6 @@ see_arrays.py
 *.png
 *.jpg
 verb*.txt
+.venv/
+.venv
+env/
