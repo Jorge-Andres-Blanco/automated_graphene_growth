@@ -24,7 +24,7 @@ def main():
     train_data_path = Path("/data/lmcat/Computer_vision/training_data")
     validation_data_path = Path("/data/lmcat/Computer_vision/validation_data")
 
-    step_size_list = [15,30]
+    step_size_list = [30]
     normalization = "layer"
     sequence_indices = range(0,4)
     
@@ -32,7 +32,7 @@ def main():
     
     for step_size in step_size_list:
         
-        steps_ahead = 2 if step_size == 30 else 4  #This is to predict exactly 1 min in the future.
+        steps_ahead = 3 if step_size == 30 else 4  #This is to predict exactly 1 min in the future.
 
         ensemble_model = EnsembleTransitionModel(num_models=5,
                                                     latent_dim=384,
@@ -64,31 +64,31 @@ def main():
             print(f"Ensemble training completed. Last loss mean and std: {losses_mean[-1]}, {losses_std[-1]}")
 
 
-            # Evaluation
-            z_eval, a_eval, y_eval, indices = load_transition_data(validation_data_path, step_size=step_size, hist_length=hist, return_indices=True)
+        # Evaluation
+        z_eval, a_eval, y_eval, indices = load_transition_data(validation_data_path, step_size=step_size, hist_length=hist, return_indices=True)
 
-            for seq_i in sequence_indices:
+        for seq_i in sequence_indices:
 
-                (start_idx, stop_idx) = indices[seq_i] # Target the specific movie of the validation data
+            (start_idx, stop_idx) = indices[seq_i] # Target the specific movie of the validation data
+            
+            # Extract only one sliding window (last available state in that trajectory)
+            # Shape becomes (hist, 384) instead of (batch, hist, 384)
+            z_hist_np = z_eval[start_idx:stop_idx]
+            a_hist_np = a_eval[start_idx:stop_idx]
+            
+            # 2. Convert to PyTorch Tensors and send to the correct device
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            z_hist_tensor = torch.tensor(z_hist_np, dtype=torch.float32, device=device)
+            a_hist_tensor = torch.tensor(a_hist_np, dtype=torch.float32, device=device)
+            
+            # Ensure the model is ready for evaluation
+            ensemble_model.to(device)
+            ensemble_model.eval()
                 
-                # Extract only one sliding window (last available state in that trajectory)
-                # Shape becomes (hist, 384) instead of (batch, hist, 384)
-                z_hist_np = z_eval[start_idx:stop_idx]
-                a_hist_np = a_eval[start_idx:stop_idx]
-                
-                # 2. Convert to PyTorch Tensors and send to the correct device
-                device = "cuda" if torch.cuda.is_available() else "cpu"
-                z_hist_tensor = torch.tensor(z_hist_np, dtype=torch.float32, device=device)
-                a_hist_tensor = torch.tensor(a_hist_np, dtype=torch.float32, device=device)
-                
-                # Ensure the model is ready for evaluation
-                ensemble_model.to(device)
-                ensemble_model.eval()
-                    
 
-                plot_path = f"/data/lmcat/Computer_vision/plots/sequence{seq_i}_hist{hist}_step{step_size}_hiddim{hidden_dimension}_norm_{normalization}_activation_{activation}.png"
+            plot_path = f"/data/lmcat/Computer_vision/plots/sequence{seq_i}_hist{hist}_step{step_size}_hiddim{hidden_dimension}_norm_{normalization}_activation_{activation}.png"
 
-                eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="closer_7", future_steps=steps_ahead, save_path=plot_path)
+            eval.plot_actions_vs_time_for_sequence(ensemble_model, z_hist_tensor, a_hist_tensor, history=hist, step_size=step_size, a_pos="all", future_steps=steps_ahead, save_path=plot_path)
 
     return None
 

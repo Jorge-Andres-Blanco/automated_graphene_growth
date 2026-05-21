@@ -147,9 +147,9 @@ def main():
     except FileNotFoundError:
             print(f"Model {i} not found")
 
-    steps_in_future = 4
-    movie_num = 1
-    initial_frame_idx = 280
+    steps_in_future = 0
+    movie_num = 2
+    initial_frame_idx = 2000
 
     target_frame_idx = initial_frame_idx + step_size*steps_in_future
     frame_0 = get_frame_data(movie_num, initial_frame_idx)
@@ -209,7 +209,7 @@ def main():
     axes[1, 1].set_title("Actual Applied CH4 Flow", fontsize=14)
     axes[1, 1].set_xlabel("Frame Index", fontsize=12)
     axes[1, 1].set_ylabel("CH4 Flow (sccm)", fontsize=12)
-    axes[1, 1].set_ylim(0, np.max(actual_flow_sequence))
+    #axes[1, 1].set_ylim(0, np.max(actual_flow_sequence))
     axes[1, 1].grid(True, linestyle='--', alpha=0.7)
 
     # Add the metrics to the overarching Suptitle
