@@ -48,6 +48,7 @@ class TransitionModel(nn.Module):
         super().__init__()
 
         self.history = history
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.latent_dim = latent_dim
         self.action_dim = action_dim
         self.hidden_dim = hidden_dim
@@ -156,12 +157,15 @@ class TransitionModel(nn.Module):
         - Latent dimension: Hardcoded to 384 during the pre-allocation of the `predictions` and `std_predictions` tensors (e.g., `torch.zeros((steps, 384))`).
         """
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.to(self.device)
+        z_init = z_init.to(self.device)
+        a_init = a_init.to(self.device)
+        a_fut = a_fut.to(self.device)
 
-        self.to(device)
+
         self.eval()
 
-        predictions = torch.zeros((steps, 384), device=device)
+        predictions = torch.zeros((steps, 384), device=self.device)
 
         # Hanfle dimensions
         z_hist = z_init.view(1, self.history, self.latent_dim)
@@ -192,7 +196,7 @@ class EnsembleTransitionModel(nn.Module):
     def __init__(self, num_models: int, **kwargs):
         super().__init__()        
         self.num_models = num_models
-
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.models = nn.ModuleList([TransitionModel(**kwargs) for _ in range(num_models)])
 
     def forward(self, z_hist, a_hist):
@@ -258,8 +262,9 @@ class EnsembleTransitionModel(nn.Module):
         predictions : torch.Tensor
             The predicted latent states from all ensemble models. Shape: (num_models, steps, 384).
         """
+
         steps = a_fut.shape[0]
-        predictions = torch.zeros((self.num_models, steps, 384), device=z_init.device)
+        predictions = torch.zeros((self.num_models, steps, 384), device=self.device)
 
         for i, model in enumerate(self.models):
 
@@ -277,8 +282,6 @@ class EnsembleTransitionModel(nn.Module):
         scores them against a target state.
         """
 
-        device = z_init.device
-
         # Default target: maintain the current state
         if target is None:
             target = z_init.view(-1, 384)[-1:]
@@ -286,13 +289,13 @@ class EnsembleTransitionModel(nn.Module):
         # Define Action Space
         # Every 0.5 to analyze intermediate values
         if a_pos == "all":
-            a_search = torch.arange(0, 20, 0.5, device=device)
+            a_search = torch.arange(0, 20, 1, device=self.device)
         elif a_pos == "closer_5":
             a_current = a_init[-1].item()
-            a_search = torch.arange(a_current - 2, a_current + 3, 0.5, device=device)
+            a_search = torch.arange(a_current - 2, a_current + 3, 0.5, device=self.device)
         elif a_pos == "closer_7":
             a_current = a_init[-1].item()
-            a_search = torch.arange(a_current - 3, a_current + 4, 0.5, device=device)
+            a_search = torch.arange(a_current - 3, a_current + 4, 0.5, device=self.device)
         else:
             raise ValueError("Invalid a_pos. Use 'all', 'closer_5', or 'closer_7'.")
 
@@ -302,17 +305,17 @@ class EnsembleTransitionModel(nn.Module):
         possibilities = len(a_search)
 
         # Predictions
-        predictions = torch.zeros((possibilities, self.num_models, steps, 384), device=device)
+        predictions = torch.zeros((possibilities, self.num_models, steps, 384), device=self.device)
         
         for i, a_fut in enumerate(a_search):
             
-            a_fut = a_fut * torch.ones(steps, 1, device=device)
+            a_fut = a_fut * torch.ones(steps, 1, device=self.device)
 
             predictions[i] = self.predict_next_steps(z_init, a_init, a_fut)
 
 
         # Target expansion to shape (1,1,1,384) and then as predicions (possibilities, num_models, steps, 384)
-        target_exp = target.view(1,1,1,-1).expand_as(predictions)
+        target_exp = target.view(1,1,1,-1).expand_as(predictions).to(self.device)
 
         # Loss
         mse_loss = nn.functional.mse_loss(predictions, target_exp, reduction='none').mean(dim=-1)

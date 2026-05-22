@@ -34,20 +34,20 @@ The repository is modularized to separate the physical hardware environment, the
 
 ---
 
-# 🔌 Hardware Prerequisites (BLISS Server Setup)
+# Hardware Prerequisites (BLISS Server Setup)
 
 The following macros must be manually loaded into the lab computer (`opid10`) BLISS session before running any AI scripts.
 
 ```python
 # Methane Flow Control
-def set_flowCH4(F):
+def set_flow_CH4(F):
     Flow.CH4 = F
 
 # Background Gases
-def set_flowAr(F):
+def set_flow_Ar(F):
     Flow.Ar = F
 
-def set_flowH2(F):
+def set_flow_H2(F):
     Flow.H2 = F
 
 # Reactor Pressure

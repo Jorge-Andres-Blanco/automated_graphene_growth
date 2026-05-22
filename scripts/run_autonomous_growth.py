@@ -4,13 +4,15 @@ import time
 from src.environment import ReactorEnv
 from src.models.dinov2_encoder import DinoEncoder
 from src.models.transition import EnsembleTransitionModel
-from src.controllers.cem_planner import CEMPlanner
+from src.controllers import CEMPlanner
+from src.data_handling import HDF5Processor
 
 def main():
     # --- A. Setup ---
     print("Booting up Automated Graphene Control System...")
     env = ReactorEnv()
     encoder = DinoEncoder()
+    data_processor = HDF5Processor(encoder=encoder)
     
     # Load the trained model
     activation, normalization, hist, step_size, hidden_dimension = "leaky_relu", "layer", 1, 30, 1024
@@ -32,9 +34,13 @@ def main():
     # Initialize the brain
     planner = CEMPlanner(transition_model=transition_model, horizon=5)
     
-    # Define your target (e.g., encode an image of perfect graphene)
-    target_image = env.observe()['Image'] # Or load from disk
-    target_z = encoder.encode_numpy_array([target_image])[0]
+    # Define your target
+    movie_num = 2
+    initial_frame_idx = 2000
+    target_frame = data_processor.get_frame_data(movie_num, initial_frame_idx)
+
+    target_image = target_frame
+    target_z = data_processor.encode_frames([target_frame])[0]
 
     # --- B. The Control Loop ---
     print("Starting growth loop...")
@@ -43,16 +49,22 @@ def main():
     for step in range(steps): #This should take 60 min
         
         # Sense the world
+
+        print("Observing current state from the reactor...")
         state = env.observe()
+        print("Current State Observed.")
         current_image = state['Image']
-        current_flow = state['CH4']
+        current_flow = state['CH4'][-hist]
         # Encode to latent space
-        current_z = encoder.encode_numpy_array([current_image])[0]
+
+        print(f"Current image shape: {current_image.shape}")  # Add batch dimension
+        current_z = encoder.encode_numpy_array(current_image)[0]
+        print(f"Current state encoded to latent space. Shape: {current_z.shape}")
         
         l2_distance = np.linalg.norm(current_z - target_z)
         cosine_similarity = np.dot(current_z, target_z) / (np.linalg.norm(current_z) * np.linalg.norm(target_z))
         
-        print(f"Current Metrics -> L2: {l2_distance:.4f} | Cosine: {cosine_similarity:.4f}")
+        print(f"Current Metrics -> L2: {l2_distance:.3f} | Cosine: {cosine_similarity:.3f}")
         
         if l2_distance < 3.0 and cosine_similarity > 0.95:
             print(f"Target state reached after {step} steps!")
@@ -62,6 +74,7 @@ def main():
             break
 
         # Plan
+        print("Planning next action using CEM...")
         best_ch4_flow = planner.get_best_action(current_z, current_flow, target_z)
         
         
@@ -88,6 +101,7 @@ def main():
         # Reduce the horizon as time passes
         if step > 0 and step % (steps // 5) == 0:
             planner.horizon = max(1,planner.horizon - 1)
+        print("Sleeping 10 seconds before next observation...")
         time.sleep(10)
 
 if __name__ == "__main__":

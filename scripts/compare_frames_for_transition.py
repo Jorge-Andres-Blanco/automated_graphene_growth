@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from src.data_handling.hdf5_processor import HDF5Processor
 from src.models import DinoEncoder, EnsembleTransitionModel
-from src.utils.plotting import compare_images_in_latent_space
+from src.utils.plotting import compare_images_in_latent_space, plot_possible_actions_losses
 from src.utils.evaluation import Evaluator
 
 
@@ -56,8 +56,7 @@ def main():
     a0 = data_processor.get_frame_data(movie_num, initial_frame_idx, measurement="CH4")
 
     # Encoding
-    encoder = DinoEncoder()
-    embeddings = data_processor.encode_frames([frame_0, frame_1], encoder=encoder)
+    embeddings = data_processor.encode_frames([frame_0, frame_1])
     actual_flow_sequence = data_processor.get_frame_data(movie_num, np.arange(initial_frame_idx, target_frame_idx+1), measurement="CH4").flatten()
     z0, z1 = embeddings[0], embeddings[1]
 
@@ -92,8 +91,8 @@ def main():
     axes[0, 1].set_title(f"Target State (Frame {target_frame_idx})", fontsize=14)
     axes[0, 1].axis('off')
 
-    # Row 1, col 1: 
-    eval.plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean', ax=axes[1, 0])
+    # Row 1, col 1:
+    plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean', ax=axes[1, 0])
 
 # [ROW 1, COL 1]: Actual Flow vs Frame
     frames_range = np.arange(initial_frame_idx, target_frame_idx)

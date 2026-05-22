@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+import hdf5plugin
 import os
 from src.models.dinov2_encoder import DinoEncoder
 

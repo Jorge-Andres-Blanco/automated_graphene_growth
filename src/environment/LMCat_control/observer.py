@@ -99,7 +99,7 @@ class Observer:
         except Exception as e:
             print(f"Invalid measurement key: {e}")
             return None
-
+                
         scan = self.get_scan(scan)
         
 
@@ -109,12 +109,25 @@ class Observer:
             length = len(streams[0])
 
 
-
             if num > length:
                 print(f"Requested {num} measurements, but only {length} are available. Returning all available measurements.")
                 num = length
 
-            sliced_measurements = [stream[(length-num):] for stream in streams]
+            print(f"Retrieving last {num} measurements...")
+            
+            sliced_measurements = []
+ 
+            for name, stream in zip(measurements, streams):
+                if "basler" in name.lower() or "image" in name.lower():
+                    # Safely grabs 1 image, keeps the batch dimension.
+                    single_image = stream[-1] 
+                    batched_image = np.expand_dims(single_image, axis=0)
+                    sliced_measurements.append(batched_image)
+                    print("Collected image data with shape:", [measurement.shape for measurement in sliced_measurements])
+                else:
+                    sliced_measurements.append(stream[(length-num):])
+                    print(f"Collected {name} data with shape:", sliced_measurements[-1].shape)
+                print("Measurements retrieved successfully.")
 
             return dict(zip(measurements, sliced_measurements))
         

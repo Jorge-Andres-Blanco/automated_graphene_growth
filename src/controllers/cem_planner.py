@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from models.transition import EnsembleTransitionModel
+from src.models.transition import EnsembleTransitionModel
 
 
 class CEMPlanner:
@@ -39,11 +39,12 @@ class CEMPlanner:
         
         # 1. Format inputs for the model (ensure they are batches of sequences)
         if not isinstance(current_z, torch.Tensor):
-            current_z = torch.tensor([current_z], dtype=torch.float32).to(self.device)
+            current_z = torch.from_numpy(current_z).float().unsqueeze(0).to(self.device)
         if not isinstance(current_a, torch.Tensor):
             current_a = torch.tensor([current_a], dtype=torch.float32).to(self.device)
         if not isinstance(target_z, torch.Tensor):
             target_z = torch.tensor(target_z, dtype=torch.float32).to(self.device)
+
 
         # 2. Ask the model to simulate the futures
         with torch.no_grad(): # Critical for speed: we are planning, not training!
