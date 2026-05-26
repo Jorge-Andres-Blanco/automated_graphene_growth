@@ -37,6 +37,8 @@ class Observer:
                              'Pressure': 'Pressure:Pressure',
                              'ArAux': 'ArAux:ArAux',
                              'Temperature':'nanodac_thermocouple_T:nanodac_thermocouple_T'}
+        
+        self.index = 0
     
 
     def get_scan(self, scan_number=-1):
@@ -107,13 +109,13 @@ class Observer:
             streams = [scan.streams[s] for s in sensors]
             
             length = len(streams[0])
+            self.index = length - 1
 
 
             if num > length:
+                # This may cause errors downstream if the model expects a certain number of frames
                 print(f"Requested {num} measurements, but only {length} are available. Returning all available measurements.")
                 num = length
-
-            print(f"Retrieving last {num} measurements...")
             
             sliced_measurements = []
  
@@ -123,7 +125,6 @@ class Observer:
                     single_image = stream[-1] 
                     batched_image = np.expand_dims(single_image, axis=0)
                     sliced_measurements.append(batched_image)
-                    print("Collected image data with shape:", [measurement.shape for measurement in sliced_measurements])
                 else:
                     sliced_measurements.append(stream[(length-num):])
                     print(f"Collected {name} data with shape:", sliced_measurements[-1].shape)
