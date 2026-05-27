@@ -47,8 +47,8 @@ def main():
     data_processor = HDF5Processor(encoder=DinoEncoder())
 
     steps_in_future = 0
-    movie_num = 2
-    initial_frame_idx = 2000
+    movie_num = 7
+    initial_frame_idx = 320
 
     target_frame_idx = initial_frame_idx + step_size*steps_in_future
     frame_0 = data_processor.get_frame_data(movie_num, initial_frame_idx)
@@ -95,12 +95,16 @@ def main():
     plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean', ax=axes[1, 0])
 
 # [ROW 1, COL 1]: Actual Flow vs Frame
-    frames_range = np.arange(initial_frame_idx, target_frame_idx)
-    axes[1, 1].plot(frames_range, actual_flow_sequence, marker='o', color='orange', linewidth=2)
+    try:
+        frames_range = np.arange(initial_frame_idx, target_frame_idx)
+        axes[1, 1].plot(frames_range, actual_flow_sequence, marker='o', color='orange', linewidth=2)
+        axes[1, 1].set_ylim(0, np.max(actual_flow_sequence))
+    except Exception as e:
+        print(f"Error occurred while plotting actual flow sequence: {e}, no flow data available for this sequence.")
+
     axes[1, 1].set_title("Actual Applied CH4 Flow", fontsize=14)
     axes[1, 1].set_xlabel("Frame Index", fontsize=12)
     axes[1, 1].set_ylabel("CH4 Flow (sccm)", fontsize=12)
-    #axes[1, 1].set_ylim(0, np.max(actual_flow_sequence))
     axes[1, 1].grid(True, linestyle='--', alpha=0.7)
 
     # Add the metrics to the overarching Suptitle

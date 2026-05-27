@@ -292,10 +292,10 @@ class EnsembleTransitionModel(nn.Module):
             a_search = torch.arange(0, 20, 1, device=self.device)
         elif a_pos == "closer_5":
             a_current = a_init[-1].item()
-            a_search = torch.arange(a_current - 2, a_current + 3, 0.5, device=self.device)
+            a_search = torch.arange(a_current - 2, a_current + 3, 1, device=self.device)
         elif a_pos == "closer_7":
             a_current = a_init[-1].item()
-            a_search = torch.arange(a_current - 3, a_current + 4, 0.5, device=self.device)
+            a_search = torch.arange(a_current - 3, a_current + 4, 1, device=self.device)
         else:
             raise ValueError("Invalid a_pos. Use 'all', 'closer_5', or 'closer_7'.")
 
