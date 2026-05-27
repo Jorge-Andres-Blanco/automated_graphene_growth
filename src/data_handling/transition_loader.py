@@ -9,6 +9,7 @@ class TransitionDataLoader:
     
     
     def __init__(self, folder_path, step_size, hist_length):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.folder_path = Path(folder_path)
         self.step_size = step_size
         self.hist_length = hist_length
