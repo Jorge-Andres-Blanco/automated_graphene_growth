@@ -659,8 +659,8 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Saved plot to {save_path}")
-        
-    plt.show()
+    else:   
+        plt.show()
 
 
 def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, step_size, history, a_pos="all", future_steps=5, save_path=None):
