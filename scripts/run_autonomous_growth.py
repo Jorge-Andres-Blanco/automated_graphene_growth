@@ -44,7 +44,6 @@ def main():
     initial_frame_idx = 320
     target_frame = data_processor.get_frame_data(movie_num, initial_frame_idx)
 
-    target_image = target_frame
     target_z = data_processor.encode_frames([target_frame])[0]
 
     # --- The Control Loop ---
@@ -68,7 +67,7 @@ def main():
         
         print(f"Current Metrics -> L2: {l2_distance:.3f} | Cosine: {cosine_similarity:.3f}")
         
-        if l2_distance < 1.7 and cosine_similarity > 0.95:
+        if l2_distance < 3 and cosine_similarity > 0.95:
             print(f"Target state reached after {step} steps!")
             print(f"Final L2 Distance: {l2_distance:.2f} | Final Cosine Similarity: {cosine_similarity:.2f}")
             print("Halting the AI control loop to preserve the graphene flake.")

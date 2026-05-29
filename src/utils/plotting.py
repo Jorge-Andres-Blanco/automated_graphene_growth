@@ -3,6 +3,7 @@ import os
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage import exposure
 
 
 def plot_2_frames(frame_0, frame_1):
@@ -547,7 +548,7 @@ def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, st
         plt.show()
 
 
-def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, aggregate='mean', ax=None, save_path=None):
+def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, aggregate='mean', ax=None, save_path=None, show=True):
     """
     Visualizes the predictive losses for different constant-action sequences.
 
@@ -563,7 +564,9 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
         loss at each specific future step.
     save_path : str or pathlib.Path, optional
         If provided, saves the figure to this location.
-            
+    show : bool, optional
+        If True, displays the figure. If False, only saves it.
+
         Returns
         -------
         None
@@ -659,7 +662,7 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Saved plot to {save_path}")
-    else:   
+    if show:
         plt.show()
 
 
@@ -1017,3 +1020,31 @@ def plot_evaluation_metrics(data_dir: str | Path):
     fig_cos.tight_layout()
     
     plt.show()
+
+
+def adjust_exposure_gray_image(img):
+    """
+    Adjusts the exposure of a grayscale image using CLAHE (Contrast Limited Adaptive Histogram Equalization).
+
+    Parameters
+    ----------
+    img : np.ndarray
+        A 2D array representing the grayscale image.
+
+    Returns
+    -------
+    np.ndarray
+        The exposure-adjusted grayscale image.
+    """
+    if len(img.shape) != 2:
+        raise ValueError("Input image must be a 2D grayscale image.")
+    
+    image_norm = (img-np.min(img)) / (np.max(img) - np.min(img) + 1e-8)
+
+    image_clahe = exposure.equalize_adapthist(image_norm,
+                                              clip_limit=0.01,
+                                              kernel_size=(64,64)
+                                              )
+    
+    return image_clahe
+

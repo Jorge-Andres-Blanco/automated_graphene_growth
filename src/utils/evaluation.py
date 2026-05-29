@@ -2,7 +2,7 @@ from pathlib import Path
 import os
 from src.models import TransitionModel, EnsembleTransitionModel
 from src.data_handling import TransitionDataLoader
-from src.utils.plotting import plot_possible_actions_losses
+from src.utils.plotting import plot_possible_actions_losses, adjust_exposure_gray_image
 import numpy as np
 import torch
 import torch.nn as nn
@@ -576,7 +576,7 @@ class Evaluator:
         return dz.mean(axis = 0), std_z.mean(axis = 0), l2_distances.mean(axis = 0), cos_similarities.mean(axis = 0)
     
     
-    def analyze_and_plot_transition(self, model, data_processor, frame_0, frame_1, a0, save_path=None, actual_flow_sequence=None, frame_idx=None, target_idx=None):
+    def analyze_and_plot_transition(self, model, data_processor, frame_0, frame_1, a0, frames_range=None, save_path=None, actual_flow_sequence=None, predicted_flow_sequence=None, frame_idx=None, target_idx=None):
         """
         Encodes images, analyzes a transition, predicts optimal actions, and saves the plot to disk.
         """
@@ -604,6 +604,10 @@ class Evaluator:
         # 4. Create the Plot
         fig, axes = plt.subplots(2, 2, figsize=(16, 10))
 
+        # Improve contrast:
+        frame_0 = adjust_exposure_gray_image(frame_0)
+        frame_1 = adjust_exposure_gray_image(frame_1)
+
         axes[0, 0].imshow(frame_0, cmap='gray')
         axes[0, 0].set_title(f"Current State (Frame {frame_idx})" if frame_idx is not None else "Current State", fontsize=14)
         axes[0, 0].axis('off')
@@ -612,17 +616,29 @@ class Evaluator:
         axes[0, 1].set_title(f"Target State (Frame {target_idx})" if target_idx is not None else "Target State", fontsize=14)
         axes[0, 1].axis('off')
 
-        plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean', ax=axes[1, 0])
+        plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean', ax=axes[1, 0], show=False)
 
-        if actual_flow_sequence is not None and len(actual_flow_sequence) > 0:
-            frames_range = np.arange(frame_idx, frame_idx + len(actual_flow_sequence))
-            axes[1, 1].plot(frames_range, actual_flow_sequence, marker='o', color='orange', linewidth=2)
-            axes[1, 1].set_ylim(0, max(np.max(actual_flow_sequence) * 1.1, 1.0))
-        
         axes[1, 1].set_title("Actual Applied CH4 Flow", fontsize=14)
         axes[1, 1].set_xlabel("Frame Index", fontsize=12)
         axes[1, 1].set_ylabel("CH4 Flow (sccm)", fontsize=12)
         axes[1, 1].grid(True, linestyle='--', alpha=0.7)
+
+        max_y=10
+
+        if actual_flow_sequence is not None and len(actual_flow_sequence) > 0:
+            if frames_range is None:
+                frames_range = np.arange(frame_idx, frame_idx + len(actual_flow_sequence))
+                max_y = max(max_y, np.max(actual_flow_sequence))
+
+            axes[1, 1].plot(frames_range, actual_flow_sequence, color='darkred', linewidth=2)
+            axes[1, 1].set_ylim(0, max(np.max(actual_flow_sequence) * 1.1, 1.0))
+        
+        if predicted_flow_sequence is not None and len(predicted_flow_sequence) > 0:
+            axes[1, 1].plot(frames_range, predicted_flow_sequence, marker='x', color='darkblue', linewidth=2, linestyle='--', label="Predicted Flow")
+            max_y = max(max_y, np.max(predicted_flow_sequence))
+
+        axes[1, 1].set_ylim(0, max_y * 1.1)
+        axes[1, 1].legend(loc="upper left")
 
         title_text = (
             f"Transition Analysis\n"
