@@ -67,7 +67,7 @@ def main():
         
         print(f"Current Metrics -> L2: {l2_distance:.3f} | Cosine: {cosine_similarity:.3f}")
         
-        if l2_distance < 3 and cosine_similarity > 0.95:
+        if l2_distance < 10 and cosine_similarity > 0.85:
             print(f"Target state reached after {step} steps!")
             print(f"Final L2 Distance: {l2_distance:.2f} | Final Cosine Similarity: {cosine_similarity:.2f}")
             print("Halting the AI control loop to preserve the graphene flake.")
@@ -75,7 +75,6 @@ def main():
             break
 
         # Plan
-        print("Planning next action using the planner...")
         best_ch4_flow = planner.get_best_action(current_z, current_flow, target_z, action_space="closer_7")
         
         # Write to log
@@ -96,7 +95,7 @@ def main():
             predictions = []
 
         # Action
-        if len(predictions) > 5:
+        if len(predictions) >= 4:
             
             mean_last_3_predictions = np.mean(predictions[-3:]) # The action only considers the last ~ 30s
 
@@ -112,8 +111,8 @@ def main():
         # step > 0 so that the horizon is not reduced in the first iteration
         if step > 0 and step % (steps // planner.horizon) == 0:
             planner.horizon = max(1,planner.horizon - 1)
-        print("Sleeping 10 seconds before next observation...")
-        time.sleep(10)
+        print("Sleeping 5 seconds...")
+        time.sleep(5)
 
     print("Autonomous growth loop has ended. Please check the log file for details and review")
 

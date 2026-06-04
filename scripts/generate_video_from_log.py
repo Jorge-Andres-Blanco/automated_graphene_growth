@@ -9,19 +9,35 @@ from src.utils.misc import cleanup_directory, compile_video_from_frames
 from src.data_handling.hdf5_processor import HDF5Processor
 from src.models import DinoEncoder, EnsembleTransitionModel
 from src.utils.evaluation import Evaluator
+import argparse
 
 
 if __name__ == "__main__":
     
+    parser = argparse.ArgumentParser(description="Generate a video replay of the autonomous growth process from log files.")
+    parser.add_argument('--log_name', type=str, required=True, help="Name of the log file (without .csv extension) to generate the video from.")
+    parser.add_argument('--movie_num', type=int, required=True, help="Movie number to use for frame and flow data.")
+    parser.add_argument('--frame_rate', type=int, default=3, help="Frame rate for the output video.")
+    args = parser.parse_args()
     # Standard setup
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data_processor = HDF5Processor(encoder=DinoEncoder())
     evaluator = Evaluator(device=device)
     
+    movie_num = args.movie_num
+    log_name = args.log_name
+    log_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/logs/{log_name}.csv"
+    
     # Define log and target frame for video generation
-    log_name = "autonomous_growth_log_20260527-1709"
-    target_frame_movie_num = 7
-    target_frame_idx = 320
+    if log_name.startswith("hold_equilibrium"):
+         target_frame_movie_num = movie_num
+         df = pd.read_csv(log_path)
+         target_frame_idx = df['frame_index'].iloc[0]
+    else:
+        target_frame_movie_num = 7
+        target_frame_idx = 320
+    
+    
     target_frame = data_processor.get_frame_data(target_frame_movie_num, target_frame_idx)
 
     # Model Setup
@@ -50,22 +66,22 @@ if __name__ == "__main__":
             print(f"model {i} loaded")
     except FileNotFoundError:
             print(f"Model {i} not found")
-    """    
+       
     # Create video frames from logs
     saved_images, temp_dir = generate_video_frames_from_logs(
-        csv_log_path=f"/data/lmcat/Computer_vision/automated_graphene_growth/logs/{log_name}.csv",
-        movie_num=9,
+        csv_log_path=log_path,
+        movie_num=movie_num,
         target_frame=target_frame,
         model=ensemble_model,
         data_processor=data_processor,
         evaluator=evaluator
     )
-    """
+    
 
     # Compile video
     compile_video_from_frames(
         saved_images=None,
-        temp_dir=Path("/data/lmcat/Computer_vision/automated_graphene_growth/plots/temp_video_frames"),
+        temp_dir=temp_dir,
         output_video_path=f"/data/lmcat/Computer_vision/automated_graphene_growth/videos/{log_name}_replay.mp4",
-        fps=3
+        fps=args.frame_rate
     )
