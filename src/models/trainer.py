@@ -35,9 +35,9 @@ class Trainer:
 
         Parameters:
             model to train
-            z_data shape (batch_size, history, latent_dim)
-            a_data shape (batch_size, history, action_dim)
-            y_data shape (batch_size, latent_dim)
+            z_data shape (total_samples, history, latent_dim)
+            a_data shape (total_samples, history, action_dim)
+            y_data shape (total_samples, latent_dim)
             save_model_as model name (.pth), empty to not save
 
         Returns:
@@ -52,15 +52,15 @@ class Trainer:
         model.to(device)
         model.train()
 
-        z_h, a_h, y = torch.from_numpy(z_data).float(), torch.from_numpy(a_data).float(), torch.from_numpy(y_data).float()
+        z_t, a_t, y_t = torch.from_numpy(z_data).float(), torch.from_numpy(a_data).float(), torch.from_numpy(y_data).float()
 
         optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
 
-        n_samples = z_h.shape[0]
+        n_samples = z_t.shape[0]
         
         losses = []
 
-        mse_loss = nn.MSELoss()
+        mse_loss = nn.MSELoss(reduction='none') # Compute the MSE loss for each sample separately
 
 
         for epoch in range(self.epochs):
@@ -79,19 +79,22 @@ class Trainer:
                 idx = perm[i:i + self.batch_size]            
 
                 # Current batch to device
-                z_n_i = z_h[idx].to(device)
-                y_n_i = y[idx].to(device)
-                a_n_i = a_h[idx].to(device)
+                # Note: z_batch_i and a_batch_i will have shape (batch_size, history, dim), y_batch_i will have shape (batch_size, dim)
+                z_batch_i = z_t[idx].to(device)
+                y_batch_i = y_t[idx].to(device)
+                a_batch_i = a_t[idx].to(device)
 
 
                 # Forward pass, compute loss, backpropagation
-                z_pred = model(z_n_i, a_n_i)
+                z_pred = model(z_batch_i, a_batch_i)
+                true_delta_z = (y_batch_i-z_batch_i[:, -1, :]).detach()
+                scale = (0.5+torch.linalg.norm(true_delta_z, dim =-1))
 
-                loss = mse_loss(z_pred, y_n_i)
+                loss = torch.mean(scale * mse_loss(z_pred, y_batch_i).mean(dim=-1))
 
                 loss.backward()
 
-                nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0) # This is to avoid sudden changes in the parameters
+                #nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0) # This is to avoid sudden changes in the parameters
 
                 optimizer.step()
 
