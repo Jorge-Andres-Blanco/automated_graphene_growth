@@ -12,7 +12,7 @@ Structure of the data files:
     "path_to_data_file",
     "file_name",
     scan_number,
-    crop_index
+    crop_index # Index for cropping the data (In case you recorded more that you want to use, e.g. to remove cooling phase). It can also be a tuple (start_idx, end_idx) if you only want to use a specific interval.
     ),
     ...
     ]
@@ -115,11 +115,14 @@ class HDF5Processor:
         Applies temporal slicing or downsampling to the data array.
         Instead of hardcoding filenames, we pass the exact crop/downsample rules.
         """
-        sliced_data = data
         
         # 1. Apply cropping if specified (e.g., to remove cooling phases)
-        if crop_index is not None:
-            sliced_data = sliced_data[:crop_index]
+        if isinstance(crop_index, int):
+            sliced_data = data[:crop_index]
+        elif isinstance(crop_index, tuple) and len(crop_index) == 2:
+            sliced_data = data[crop_index[0]:crop_index[1]]
+        else:
+            sliced_data = data
             
         # 2. Apply downsampling based on sleep time
         if sleep_time_basler == 1:
@@ -216,3 +219,22 @@ class HDF5Processor:
         frame = self.get_frame_from_h5(full_file_path, scan_number, frame_num, measurement=measurement)
 
         return frame
+
+    def get_length_of_measurement_sequence(self, movie_num, measurement:str = "basler"):
+
+        movie_path, file_name, scan_number, _ = self.data_files[movie_num]
+        
+        full_file_path = os.path.join(movie_path, file_name)
+
+        with h5py.File(full_file_path, "r") as f:
+            
+            dataset_path = f"{scan_number}.1/measurement/{measurement}"
+
+            if dataset_path not in f:
+                raise KeyError(f"Path {dataset_path} not found in {full_file_path}")
+                
+            measurements = f[dataset_path]
+
+            length = measurements.shape[0]
+
+        return length

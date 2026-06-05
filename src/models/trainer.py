@@ -157,7 +157,7 @@ class Trainer:
 
             z_data, a_data, y_data = data_loader.load_full_dataset()
 
-            model, loss = self.train_transition_model(z_data, a_data, y_data, model=model, save_model_as = model_name)
+            model, loss = self.train_transition_model(model=model, z_data=z_data, a_data=a_data, y_data=y_data, save_model_as = model_name)
             
             losses.append(loss)
 
@@ -167,7 +167,7 @@ class Trainer:
 
 
 
-    def train_ensmble_with_bagging(self, ensemble_model: 'EnsembleTransitionModel', data_loader: 'TransitionDataLoader', save_prefix = ""):
+    def train_ensemble_with_bagging(self, ensemble_model: 'EnsembleTransitionModel', data_loader: 'TransitionDataLoader', save_prefix = ""):
         """
         Trains an ensemble model using Bootstrap Aggregating (Bagging).
 
@@ -205,7 +205,7 @@ class Trainer:
             
             z_data, a_data, y_data = data_loader.load_from_sample_scenes_with_replacement(scenes_indices)
 
-            model, loss = self.train_transition_model(z_data, a_data, y_data, model=model, save_model_as = model_name)
+            model, loss = self.train_transition_model(model=model, z_data=z_data, a_data=a_data, y_data=y_data, save_model_as=model_name)
             
             losses.append(loss)
 

@@ -576,7 +576,7 @@ class Evaluator:
         return dz.mean(axis = 0), std_z.mean(axis = 0), l2_distances.mean(axis = 0), cos_similarities.mean(axis = 0)
     
     
-    def analyze_and_plot_transition(self, model, data_processor, frame_0, frame_1, a0, frames_range=None, save_path=None, actual_flow_sequence=None, predicted_flow_sequence=None, frame_idx=None, target_idx=None):
+    def analyze_and_plot_transition(self, model, data_processor, frame_0, frame_1, a0, frames_range=None, save_path=None, actual_flow_sequence=None, predicted_flow_sequence=None, frame_idx=None, target_idx=None, horizon=2):
         """
         Encodes images, analyzes a transition, predicts optimal actions, and saves the plot to disk.
         """
@@ -594,7 +594,7 @@ class Evaluator:
         # 3. Predict action losses
         with torch.no_grad():
             losses, actions_evaluated = model.predict_action_losses(
-                steps=5, 
+                planning_horizon=horizon, 
                 z_init=torch.tensor([z0], dtype=torch.float32).to(self.device), 
                 a_init=torch.tensor([a0], dtype=torch.float32).to(self.device),
                 a_pos="all", 
@@ -609,18 +609,18 @@ class Evaluator:
         frame_1 = adjust_exposure_gray_image(frame_1)
 
         axes[0, 0].imshow(frame_0, cmap='gray')
-        axes[0, 0].set_title(f"Current State (Frame {frame_idx})" if frame_idx is not None else "Current State", fontsize=14)
+        axes[0, 0].set_title(f"Current State (Frame {frame_idx})" if frame_idx is not None else "Current State", fontsize=18)
         axes[0, 0].axis('off')
 
         axes[0, 1].imshow(frame_1, cmap='gray')
-        axes[0, 1].set_title(f"Target State (Frame {target_idx})" if target_idx is not None else "Target State", fontsize=14)
+        axes[0, 1].set_title(f"Target State (Frame {target_idx})" if target_idx is not None else "Target State", fontsize=18)
         axes[0, 1].axis('off')
 
         plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean', ax=axes[1, 0], show=False)
 
-        axes[1, 1].set_title("Actual Applied CH4 Flow", fontsize=14)
-        axes[1, 1].set_xlabel("Frame Index", fontsize=12)
-        axes[1, 1].set_ylabel("CH4 Flow (sccm)", fontsize=12)
+        axes[1, 1].set_title(r"Applied CH$_4$ Flow Rate", fontsize=20)
+        axes[1, 1].set_xlabel("Frame Index", fontsize=18)
+        axes[1, 1].set_ylabel(r"CH$_4$ Flow Rate(sccm)", fontsize=18)
         axes[1, 1].grid(True, linestyle='--', alpha=0.7)
 
         max_y=10
@@ -630,7 +630,7 @@ class Evaluator:
                 frames_range = np.arange(frame_idx, frame_idx + len(actual_flow_sequence))
                 max_y = max(max_y, np.max(actual_flow_sequence))
 
-            axes[1, 1].plot(frames_range, actual_flow_sequence, color='darkred', linewidth=2)
+            axes[1, 1].plot(frames_range, actual_flow_sequence, color='darkred', linewidth=2, label="Actual Flow")
             axes[1, 1].set_ylim(0, max(np.max(actual_flow_sequence) * 1.1, 1.0))
         
         if predicted_flow_sequence is not None and len(predicted_flow_sequence) > 0:
@@ -638,13 +638,14 @@ class Evaluator:
             max_y = max(max_y, np.max(predicted_flow_sequence))
 
         axes[1, 1].set_ylim(0, max_y * 1.1)
-        axes[1, 1].legend(loc="upper left")
+        axes[1, 1].legend(loc="upper left", fontsize=16)
+        axes[1, 1].tick_params(axis='both', labelsize=16)
 
         title_text = (
             f"Transition Analysis\n"
             f"L2 Distance: {l2_distance:.4f}  |  Cosine Similarity: {cosine_similarity:.4f}"
         )
-        plt.suptitle(title_text, fontsize=18, fontweight='bold')
+        plt.suptitle(title_text, fontsize=20, fontweight='bold')
 
         plt.tight_layout()
 

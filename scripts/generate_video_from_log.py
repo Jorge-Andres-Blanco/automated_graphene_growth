@@ -26,13 +26,21 @@ if __name__ == "__main__":
     
     movie_num = args.movie_num
     log_name = args.log_name
+
     log_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/logs/{log_name}.csv"
+    output_video_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/videos/validation_{log_name+'_'+str(movie_num) if log_name=='validation' else log_name}_replay.mp4"
     
     # Define log and target frame for video generation
     if log_name.startswith("hold_equilibrium"):
          target_frame_movie_num = movie_num
          df = pd.read_csv(log_path)
          target_frame_idx = df['frame_index'].iloc[0]
+    
+    elif log_name == "validation":
+        target_frame_movie_num = movie_num
+        log_path = None # We will use the entire sequence, so no log file with model decisions is needed.
+        target_frame_idx = 320 # Dummy target, not necessary
+    
     else:
         target_frame_movie_num = 7
         target_frame_idx = 320
@@ -51,7 +59,7 @@ if __name__ == "__main__":
     ensemble_model = ensemble_model = EnsembleTransitionModel(num_models=5,
                                                         latent_dim=384,
                                                         action_dim=1,
-                                                        hidden_dim=1024,
+                                                        hidden_dim=hidden_dimension,
                                                         normalization=normalization,
                                                         activation=activation,
                                                         num_hidden_layers=2,
@@ -82,6 +90,6 @@ if __name__ == "__main__":
     compile_video_from_frames(
         saved_images=None,
         temp_dir=temp_dir,
-        output_video_path=f"/data/lmcat/Computer_vision/automated_graphene_growth/videos/{log_name}_replay.mp4",
+        output_video_path=output_video_path,
         fps=args.frame_rate
     )

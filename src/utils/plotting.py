@@ -555,12 +555,12 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
     Parameters
     ----------
     losses : torch.Tensor or np.ndarray
-        The distance metric for each action sequence. Shape: (possibilities, num_models, steps).
+        The distance metric for each action sequence. Shape: (possibilities, num_models, planning_horizon).
     actions : torch.Tensor, np.ndarray, or list
         The corresponding action values that were evaluated. Length: (possibilities,).
     aggregate : str or None
         If 'mean', plots a single bar per action representing the loss averaged 
-        across all future steps. If None, plots a grouped bar chart showing the 
+        across all future steps (planning_horizon). If None, plots a grouped bar chart showing the 
         loss at each specific future step.
     save_path : str or pathlib.Path, optional
         If provided, saves the figure to this location.
@@ -612,10 +612,11 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
             alpha=0.85
         )
         
-        ax.set_ylabel("Mean Loss (MSE + Alignment)", fontsize = 14)
-        ax.set_title("Average Predictive Loss per Action Sequence", fontsize = 16)
+        ax.set_ylabel("Planning Loss", fontsize = 18)
+        ax.set_title(r"Planning Loss per CH$_4$ Flow Rate", fontsize = 20)
         
     elif aggregate is None:
+        # THIS IS INCOMPLETE
         # Shapes become (possibilities, steps)
         mean_losses = losses.mean(axis=1)
         std_losses = losses.std(axis=1)
@@ -653,8 +654,8 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels)
     ax.set_xlim(-0.5,num_actions-0.5)
-    ax.tick_params(axis='both', labelsize = 12)
-    ax.set_xlabel("Constant CH4 Action Value", fontsize = 14)
+    ax.tick_params(axis='both', labelsize = 16)
+    ax.set_xlabel(r"Constant CH$_4$ Flow Rate (sccm)", fontsize = 18)
     ax.grid(axis='y', linestyle='--', alpha=0.7)
     
     plt.tight_layout()

@@ -55,7 +55,7 @@ def main():
             trainer = Trainer(lr=1e-3, batch_size=64, epochs=4)
             train_data_loader = TransitionDataLoader(train_data_path, step_size=step_size, hist_length=hist)
             
-            ensemble_model = trainer.train_ensmble_with_bagging(ensemble_model=ensemble_model,
+            ensemble_model = trainer.train_ensemble_with_bagging(ensemble_model=ensemble_model,
                                                                     data_loader = train_data_loader,
                                                                     save_prefix = model_name_prefix)
             
