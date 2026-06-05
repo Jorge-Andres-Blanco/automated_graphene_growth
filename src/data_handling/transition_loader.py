@@ -166,8 +166,12 @@ class TransitionDataLoader:
             max_idx = N - self.context_needed
             
             for i in range(max_idx):
+                last_context_idx = i + self.context_needed - self.step_size # Index of the last context frame (inclusive)
+                target_idx = i + self.context_needed # Index of the target frame, remember context is history*step_size.
+                avg_action = np.mean(scene_CH4[last_context_idx : target_idx]) # Actions corresponding to the context frames, including the last one.
+
                 z_list.append(scene_cls[i : i + self.context_needed : self.step_size])
-                a_list.append(scene_CH4[i : i + self.context_needed : self.step_size])
-                y_list.append(scene_cls[i + self.context_needed])
+                a_list.append(avg_action)
+                y_list.append(scene_cls[target_idx]) 
 
         return np.array(z_list), np.array(a_list), np.array(y_list)
