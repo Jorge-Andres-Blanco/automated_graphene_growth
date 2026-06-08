@@ -68,7 +68,6 @@ class CEMPlanner:
         best_action_idx = np.argmin(mean_losses)
         best_action = actions_np[best_action_idx]
 
-        print(f"[Planner] Evaluated {len(actions_np)} action sequences.")
         print(f"[Planner] Best predicted action: {best_action:.2f} sccm (Loss: {mean_losses[best_action_idx]:.4f})")
 
         return float(best_action)

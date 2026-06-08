@@ -20,7 +20,7 @@ learned world model. The architecture is:
                  (In a real experiment: sends new control values to the instrument)
 
 """
-
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -31,7 +31,7 @@ class TransitionModel(nn.Module):
 
     """
     
-    def __init__(self, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history = 1, normalization = "layer", activation = "relu", dropout = 0.15):
+    def __init__(self, latent_dim=384, action_dim=1, hidden_dim=1024, num_hidden_layers=2, history = 1, normalization = "layer", activation = "leaky_relu", dropout = 0.15, step_size = None):
         """
         How to use:
         
@@ -53,16 +53,10 @@ class TransitionModel(nn.Module):
         self.action_dim = action_dim
         self.hidden_dim = hidden_dim
         self.num_hidden_layers = num_hidden_layers
+        self.step_size = step_size
 
         self.register_buffer('a_min', torch.tensor(0.0))
         self.register_buffer('a_max', torch.tensor(15.0))
-
-
-        input_dim = latent_dim*history + action_dim*history
-
-
-        layers = [nn.Linear(input_dim, hidden_dim), nn.ReLU()]
-
 
         # Normalization
         if normalization == "batch":
@@ -91,6 +85,11 @@ class TransitionModel(nn.Module):
 
         
         # Structure
+
+        input_dim = latent_dim*history + action_dim*history
+
+
+        layers = [nn.Linear(input_dim, hidden_dim), activation, normalization, nn.Dropout(p=dropout)]
 
         for _ in range(num_hidden_layers):
         
@@ -374,3 +373,55 @@ class EnsembleTransitionModel(nn.Module):
     
         except FileNotFoundError:
             print(f"Model {i} not found")
+
+    
+    
+    def get_best_action(self, horizon: int, current_z: torch.Tensor, current_a: torch.Tensor, target_z: torch.Tensor, action_space: str = "all"):
+        """
+        Evaluates potential actions and returns the best immediate CH4 flow to apply.
+        
+        Args:
+            horizon (int): The planning horizon.
+            current_z (np.ndarray or Tensor): Current latent state embedding.
+            current_a (float or Tensor): The currently applied CH4 flow.
+            target_z (np.ndarray or Tensor): The goal latent state embedding.
+            action_space (str): The subset of actions to evaluate (e.g., "all", "closer_7").
+            
+        Returns:
+            float: The optimal CH4 flow value to execute next.
+        """
+        
+        # 1. Format inputs for the model (ensure they are batches of sequences)
+        if not isinstance(current_z, torch.Tensor):
+            current_z = torch.from_numpy(current_z).float().unsqueeze(0).to(self.device)
+        if not isinstance(current_a, torch.Tensor):
+            current_a = torch.tensor([current_a], dtype=torch.float32).to(self.device)
+        if not isinstance(target_z, torch.Tensor):
+            target_z = torch.tensor(target_z, dtype=torch.float32).to(self.device)
+
+
+        # 2. Ask the model to simulate the futures
+        with torch.no_grad(): # Critical for speed: we are planning, not training!
+            losses, actions_evaluated = self.predict_action_losses(
+                steps=horizon,
+                z_init=current_z,
+                a_init=current_a,
+                a_pos=action_space,
+                target=target_z
+            )
+
+        # 3. Process the losses (Aggregate across time steps and ensemble models)
+        # losses shape: (num_actions, num_models, steps)
+        losses_np = losses.cpu().numpy()
+        actions_np = actions_evaluated.cpu().numpy()
+
+        # Average loss across the temporal rollout (axis=2) and ensemble models (axis=1)
+        mean_losses = losses_np.mean(axis=(1, 2))
+
+        # Select the optimal action
+        best_action_idx = np.argmin(mean_losses)
+        best_action = actions_np[best_action_idx]
+
+        print(f"[Planner] Best predicted action: {best_action:.2f} sccm (Loss: {mean_losses[best_action_idx]:.4f})")
+
+        return float(best_action)

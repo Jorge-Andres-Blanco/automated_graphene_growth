@@ -169,33 +169,38 @@ class Trainer:
 
     def train_ensemble_with_bagging(self, ensemble_model: 'EnsembleTransitionModel', data_loader: 'TransitionDataLoader', save_prefix = ""):
         """
-        Trains an ensemble model using Bootstrap Aggregating (Bagging).
+        Trains an ensemble model using Bootstrap Aggregating (Bagging) from a global pool.
 
         For each model in the ensemble, a new dataset is constructed by randomly 
-        sampling scenes with replacement from the full dataset. This increases 
-        variance among the models, improving the ensemble's overall robustness.
+        sampling transition pairs (z, a, y) with replacement from the flattened 
+        global dataset. This breaks temporal correlations, forces the model to learn 
+        true transition dynamics, and increases variance among the ensemble, 
+        improving overall robustness.
 
         Parameters
         ----------
         ensemble_model : EnsembleTransitionModel
             The ensemble model containing the individual transition networks.
         data_loader : TransitionDataLoader
-            The object that pases the training data.
-        save_prefix : str
+            The object that parses and extracts the chronological training data.
+        save_prefix : str, optional
             Prefix for saving the individual model weights (e.g., hyperparameter ID).
-        step_size : int
-            The strided gap between consecutive measurements.
+            Defaults to "".
             
         Returns
         -------
         ensemble_model : EnsembleTransitionModel
             The fully trained ensemble.
-        losses : np.ndarray
-            Array containing the loss history for each individual model.
+            
+        Notes
+        -----
+        The loss history for each individual model is stored internally in the 
+        `self.losses` attribute as a numpy array.
         """
         losses = []
-        # Divide sequences into scenes (get scenes indices).
-        scenes_indices = data_loader.generate_scene_indices()
+
+        z_train, a_train, y_train = data_loader.load_full_dataset()
+        total_samples = z_train.shape[0]
 
         # Training for each model
         for i, model in enumerate(ensemble_model.models):
@@ -203,13 +208,15 @@ class Trainer:
             print(f"Training model {i+1}/{ensemble_model.num_models}")
             model_name = f"{save_prefix}_transition_model_{i}.pth" if save_prefix else f"transition_model_{i}.pth"
             
-            z_data, a_data, y_data = data_loader.load_from_sample_scenes_with_replacement(scenes_indices)
+            bootstrap_indices = np.random.choice(total_samples, size=total_samples, replace=True)
+            
+            z_bag, a_bag, y_bag = z_train[bootstrap_indices], a_train[bootstrap_indices], y_train[bootstrap_indices]
 
-            model, loss = self.train_transition_model(model=model, z_data=z_data, a_data=a_data, y_data=y_data, save_model_as=model_name)
+            model, loss = self.train_transition_model(model=model, z_data=z_bag, a_data=a_bag, y_data=y_bag, save_model_as=model_name)
             
             losses.append(loss)
 
-            del z_data, a_data, y_data
+            del z_bag, a_bag, y_bag
             gc.collect()
 
         self.losses = np.array(losses)

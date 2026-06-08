@@ -1,10 +1,9 @@
-import os
 import pandas as pd
 import numpy as np
 import imageio.v3 as iio
 import torch
 from pathlib import Path
-from src.utils.logger import generate_video_frames_from_logs
+from src.utils.evaluation import Evaluator
 from src.utils.misc import compile_video_from_frames
 from src.data_handling.hdf5_processor import HDF5Processor
 from src.models import DinoEncoder, EnsembleTransitionModel
@@ -15,8 +14,6 @@ import argparse
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Generate a video replay of the autonomous growth process from log files.")
-    parser.add_argument('--log_name', type=str, required=True, help="Name of the log file (without .csv extension) to generate the video from.")
-    parser.add_argument('--movie_num', type=int, required=True, help="Movie number to use for frame and flow data.")
     parser.add_argument('--frame_rate', type=int, default=3, help="Frame rate for the output video.")
     args = parser.parse_args()
     # Standard setup
@@ -24,37 +21,14 @@ if __name__ == "__main__":
     data_processor = HDF5Processor(encoder=DinoEncoder())
     evaluator = Evaluator(device=device)
     
-    movie_num = args.movie_num
-    log_name = args.log_name
 
-    log_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/logs/{log_name}.csv"
-    output_video_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/videos/validation_{log_name+'_'+str(movie_num) if log_name=='validation' else log_name}_replay.mp4"
-    
-    # Define log and target frame for video generation
-    if log_name.startswith("hold_equilibrium"):
-         target_frame_movie_num = movie_num
-         df = pd.read_csv(log_path)
-         target_frame_idx = df['frame_index'].iloc[0]
-    
-    elif log_name == "validation":
-        target_frame_movie_num = movie_num
-        log_path = None # We will use the entire sequence, so no log file with model decisions is needed.
-        target_frame_idx = 320 # Dummy target, not necessary
-    
-    else:
-        target_frame_movie_num = 7
-        target_frame_idx = 320
-    
-    
-    target_frame = data_processor.get_frame_data(target_frame_movie_num, target_frame_idx)
-
-    # Model Setup
-    
     hist = 1
-    step_size = 15
+    step_size = 30
     hidden_dimension=1024
     normalization="layer"
     activation="leaky_relu"
+
+    # Model Setup
 
     ensemble_model = EnsembleTransitionModel(num_models=5,
                                             latent_dim=384,
@@ -75,22 +49,23 @@ if __name__ == "__main__":
             print(f"model {i} loaded")
     except FileNotFoundError:
             print(f"Model {i} not found")
-       
-    # Create video frames from logs
-    saved_images, temp_dir = generate_video_frames_from_logs(
-        csv_log_path=log_path,
-        movie_num=movie_num,
-        target_frame=target_frame,
-        model=ensemble_model,
-        data_processor=data_processor,
-        evaluator=evaluator
-    )
-    
 
-    # Compile video
-    compile_video_from_frames(
-        saved_images=None,
-        temp_dir=temp_dir,
-        output_video_path=output_video_path,
-        fps=args.frame_rate
-    )
+    for movie_num in [0,1,2,4]:
+        
+         # Create video frames from logs
+        saved_images, temp_dir = evaluator.generate_video_frames_for_validation(
+            movie_num=movie_num,
+            model=ensemble_model,
+            data_processor=data_processor,
+            horizon=5
+        )
+        
+        output_video_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/videos/model_{step_size}/validation_{movie_num}_replay.mp4"        
+
+        # Compile video
+        compile_video_from_frames(
+            saved_images=None,
+            temp_dir=temp_dir,
+            output_video_path=output_video_path,
+            fps=args.frame_rate
+        )

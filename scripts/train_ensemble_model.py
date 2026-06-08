@@ -22,13 +22,14 @@ if __name__ == "__main__":
 
     #Define model
     model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
-    ensemble_model = EnsembleTransitionModel(num_models=8,
+    ensemble_model = EnsembleTransitionModel(num_models=5,
                                                     latent_dim=384,
                                                     action_dim=1,
                                                     hidden_dim=hidden_dimension,
                                                     normalization=normalization,
                                                     activation=activation,
                                                     num_hidden_layers=2,
+                                                    step_size=step_size,
                                                     history=hist)
 
     # To be changed according to the executing machine
@@ -46,3 +47,10 @@ if __name__ == "__main__":
     losses_mean = np.mean(losses, axis=0)
     losses_std = np.std(losses, axis=0)
     print(f"Ensemble training completed. Last loss mean and std: {losses_mean[-1]}, {losses_std[-1]}")
+
+    # Validation
+    evaluator = Evaluator(device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    validation_data_loader = TransitionDataLoader(validation_data_path, step_size=step_size, hist_length=hist)
+    z_val, a_val, y_val = validation_data_loader.load_full_dataset()
+    loss, cos_similarity = evaluator.evaluate_ensemble_transition_model(ensemble_model, z_val, a_val, y_val)
+    print(f"Validation loss: {loss}, Cosine similarity: {cos_similarity}") 

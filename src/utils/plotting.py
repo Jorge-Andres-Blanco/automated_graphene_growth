@@ -612,35 +612,29 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
             alpha=0.85
         )
         
-        ax.set_ylabel("Planning Loss", fontsize = 18)
-        ax.set_title(r"Planning Loss per CH$_4$ Flow Rate", fontsize = 20)
+        ax.set_ylabel("Mean Planning Loss", fontsize = 18)
         
     elif aggregate is None:
         # THIS IS INCOMPLETE
         # Shapes become (possibilities, steps)
-        mean_losses = losses.mean(axis=1)
-        std_losses = losses.std(axis=1)
+        mean_losses = losses.mean(axis=1)[:,-1] # Only plot the final step's loss
+        std_losses = losses.std(axis=1)[:,-1] # Only plot the final step's standard deviation
+
+        # Color the best (lowest loss) action distinctly to make the chart actionable
+        best_idx = np.argmin(mean_losses)
+        colors = ['#1f77b4' if i != best_idx else '#2ca02c' for i in range(num_actions)]
         
-        x_indices = np.arange(num_actions)
-        bar_width = 0.8 / steps
-        
-        # Calculate offsets to perfectly center the group of bars over the tick mark
-        offsets = np.linspace(-0.4 + bar_width/2, 0.4 - bar_width/2, steps)
-        
-        for s in range(steps):
-            ax.bar(
-                x_indices + offsets[s], 
-                mean_losses[:, s], 
-                yerr=std_losses[:, s], # Apply the step-specific standard deviation
-                width=bar_width, 
-                capsize=3,             # Smaller caps for crowded grouped bars
-                label=f'Step {s+1}',
-                alpha=0.9,
-                edgecolor='black'
-            )
-        ax.set_ylabel("Step-wise Loss", fontsize = 14)
-        ax.set_title("Temporal Predictive Loss per Action (Error bars = Ensemble Std)", fontsize = 16)
-        ax.legend(title="Rollout Step", fontsize = 12)
+        ax.bar(
+            actions.astype(str), 
+            mean_losses, 
+            yerr=std_losses,
+            ecolor='red', 
+            capsize=5,             # Adds horizontal caps to the error bars
+            alpha=0.85,
+            edgecolor='black',
+            color=colors
+        )
+        ax.set_ylabel("Planning Loss at last step", fontsize = 18)
         
     else:
         raise ValueError("Invalid aggregate parameter. Use 'mean' or None.")
@@ -657,7 +651,8 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
     ax.tick_params(axis='both', labelsize = 16)
     ax.set_xlabel(r"Constant CH$_4$ Flow Rate (sccm)", fontsize = 18)
     ax.grid(axis='y', linestyle='--', alpha=0.7)
-    
+    ax.set_title(r"Planning Loss per CH$_4$ Flow Rate", fontsize = 20)
+
     plt.tight_layout()
     
     if save_path:

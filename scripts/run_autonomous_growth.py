@@ -37,7 +37,7 @@ def main():
     transition_model.load_ensemble(model_name_prefix)
 
     # Initialize the brain
-    planner = CEMPlanner(transition_model=transition_model, horizon=7)
+    planner = CEMPlanner(transition_model=transition_model, horizon=10)
     
     # Define your target
     movie_num = 7
@@ -67,7 +67,7 @@ def main():
         
         print(f"Current Metrics -> L2: {l2_distance:.3f} | Cosine: {cosine_similarity:.3f}")
         
-        if l2_distance < 10 and cosine_similarity > 0.85:
+        if l2_distance < 10 and cosine_similarity > 0.8:
             print(f"Target state reached after {step} steps!")
             print(f"Final L2 Distance: {l2_distance:.2f} | Final Cosine Similarity: {cosine_similarity:.2f}")
             print("Halting the AI control loop to preserve the graphene flake.")
@@ -75,7 +75,7 @@ def main():
             break
 
         # Plan
-        best_ch4_flow = planner.get_best_action(current_z, current_flow, target_z, action_space="closer_7")
+        best_ch4_flow = planner.get_best_action(current_z, current_flow, target_z, action_space="all")
         
         # Write to log
         log_model_decision(filepath=log_file_path, frame_index=env.observer.index, pred_flow=best_ch4_flow)
@@ -107,10 +107,6 @@ def main():
             predictions = []
 
 
-        # Reduce the horizon as time passes
-        # step > 0 so that the horizon is not reduced in the first iteration
-        if step > 0 and step % (steps // planner.horizon) == 0:
-            planner.horizon = max(1,planner.horizon - 1)
         print("Sleeping 5 seconds...")
         time.sleep(5)
 
