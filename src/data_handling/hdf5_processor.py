@@ -84,6 +84,12 @@ DATA_FILES = [
             2,
             None
         ),
+        (
+            "/data/lmcat/inhouse/20260616/ihma865/id10-surf/20260601/RAW_DATA/Gr_1_160626_camera/Gr_1_160626_camera_0001/",
+            "Gr_1_160626_camera_0001.h5",
+            2,
+            None
+        ),
 
     ]
 

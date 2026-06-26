@@ -1018,7 +1018,7 @@ def plot_evaluation_metrics(data_dir: str | Path):
     plt.show()
 
 
-def adjust_exposure_gray_image(img):
+def adjust_exposure_gray_image(img: np.ndarray):
     """
     Adjusts the exposure of a grayscale image using CLAHE (Contrast Limited Adaptive Histogram Equalization).
 
@@ -1037,9 +1037,12 @@ def adjust_exposure_gray_image(img):
     
     image_norm = (img-np.min(img)) / (np.max(img) - np.min(img) + 1e-8)
 
+    img_x, img_y = img.shape
+    kx, ky = img_x//4, img_y//4 
+
     image_clahe = exposure.equalize_adapthist(image_norm,
-                                              clip_limit=0.01,
-                                              kernel_size=(64,64)
+                                              clip_limit=0.02,
+                                              kernel_size=(128,128)#(kx, ky)
                                               )
     
     return image_clahe

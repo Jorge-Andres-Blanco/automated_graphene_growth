@@ -57,7 +57,7 @@ if __name__ == "__main__":
             movie_num=movie_num,
             model=ensemble_model,
             data_processor=data_processor,
-            horizon=5
+            horizon=3
         )
         
         output_video_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/videos/model_{step_size}/validation_{movie_num}_replay.mp4"        

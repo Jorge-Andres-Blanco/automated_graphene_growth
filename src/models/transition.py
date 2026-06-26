@@ -425,3 +425,39 @@ class EnsembleTransitionModel(nn.Module):
         print(f"[Planner] Best predicted action: {best_action:.2f} sccm (Loss: {mean_losses[best_action_idx]:.4f})")
 
         return float(best_action)
+
+
+
+    @torch.no_grad()
+    def predict_action_results(self, planning_horizon: int, z_init: torch.Tensor, a_init: torch.Tensor, a_pos:str = "all"):
+        """
+        Evaluates hypothetical constant-action sequences over a future horizon and returns the resulting predictions.
+        """
+
+        # Define Action Space
+        if a_pos == "all":
+            a_search = torch.arange(0, 10, 1, device=self.device)
+        elif a_pos == "closer_5":
+            a_current = a_init[-1].item()
+            a_search = torch.arange(a_current - 2, a_current + 3, 1, device=self.device)
+        elif a_pos == "closer_7":
+            a_current = a_init[-1].item()
+            a_search = torch.arange(a_current - 3, a_current + 4, 1, device=self.device)
+        else:
+            raise ValueError("Invalid a_pos. Use 'all', 'closer_5', or 'closer_7'.")
+
+        # Clamp actions to ensure they don't fall below zero
+        a_search = torch.clamp(a_search, min=0, max=10)
+        possibilities = len(a_search)
+
+        # Predictions
+        predictions = torch.zeros((possibilities, self.num_models, planning_horizon, 384), device=self.device)
+        
+        for i, a_fut in enumerate(a_search):
+            
+            a_fut = a_fut * torch.ones(planning_horizon, 1, device=self.device)
+
+            predictions[i] = self.predict_next_steps(z_init, a_init, a_fut)
+
+        # Returns predictions (possibilities, num_models, planning_horizon) and a_search (possibilities,)
+        return predictions, a_search

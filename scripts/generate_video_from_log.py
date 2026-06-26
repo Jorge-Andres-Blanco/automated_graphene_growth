@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # Model Setup
     
     hist = 1
-    step_size = 15
+    step_size = 45
     hidden_dimension=1024
     normalization="layer"
     activation="leaky_relu"
@@ -83,7 +83,8 @@ if __name__ == "__main__":
         target_frame=target_frame,
         model=ensemble_model,
         data_processor=data_processor,
-        evaluator=evaluator
+        evaluator=evaluator,
+        frames2seconds=True
     )
     
 

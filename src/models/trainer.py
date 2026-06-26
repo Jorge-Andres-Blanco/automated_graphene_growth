@@ -88,7 +88,7 @@ class Trainer:
                 # Forward pass, compute loss, backpropagation
                 z_pred = model(z_batch_i, a_batch_i)
                 true_delta_z = (y_batch_i-z_batch_i[:, -1, :]).detach()
-                scale = (0.5+torch.linalg.norm(true_delta_z, dim =-1))
+                scale = (1.0 + torch.linalg.norm(true_delta_z, dim =-1))
 
                 loss = torch.mean(scale * mse_loss(z_pred, y_batch_i).mean(dim=-1))
 

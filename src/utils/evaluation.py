@@ -561,7 +561,8 @@ class Evaluator:
                                     actual_flow_sequence=None,
                                     frame_idx=None,
                                     target_idx=None,
-                                    horizon=2):
+                                    horizon=2,
+                                    frames2seconds=False):
         """
         Encodes images, analyzes a transition, predicts optimal actions, and saves the plot to disk.
         """
@@ -613,7 +614,6 @@ class Evaluator:
         plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean', ax=axes[1, 0], show=False)
 
         axes[1, 1].set_title(r"Applied CH$_4$ Flow Rate", fontsize=20)
-        axes[1, 1].set_xlabel("Frame Index", fontsize=18)
         axes[1, 1].set_ylabel(r"CH$_4$ Flow Rate(sccm)", fontsize=18)
         axes[1, 1].grid(True, linestyle='--', alpha=0.7)
 
@@ -623,13 +623,22 @@ class Evaluator:
             if frames_range is None:
                 frames_range = np.arange(frame_idx, frame_idx + len(actual_flow_sequence))
                 max_y = max(max_y, np.max(actual_flow_sequence))
+            
+            if frames2seconds:
+                x_flow_plot = (frames_range - frames_range[0])*2 #To convert to seconds it needs to start at 0 and the frames should be spaced by 2 s
+                x_flow_plot_label = "Time (s)"
+            else:
+                x_flow_plot = frames_range
+                x_flow_plot_label = "Frame Index"
 
-            axes[1, 1].plot(frames_range, actual_flow_sequence, color='darkred', linewidth=2, label="Actual Flow")
+
+            axes[1, 1].plot(x_flow_plot, actual_flow_sequence, color='darkred', linewidth=2, label="Actual Flow")
+            axes[1, 1].set_xlabel(x_flow_plot_label, fontsize=18)
             axes[1, 1].set_ylim(0, max(np.max(actual_flow_sequence) * 1.1, 1.0))
         
-        if  len(predicted_flow_sequence) > 0:
+        if  len(predicted_flow_sequence) > 1:
             
-            axes[1, 1].plot(frames_range, predicted_flow_sequence, marker='x', color='darkblue', linewidth=2, linestyle='--', label="Predicted Flow")
+            axes[1, 1].plot(x_flow_plot, predicted_flow_sequence, marker='x', color='darkblue', linewidth=2, linestyle='--', label="Predicted Flow")
             max_y = max(max_y, np.max(predicted_flow_sequence))
 
         axes[1, 1].set_ylim(0, max_y * 1.1)
@@ -682,7 +691,7 @@ class Evaluator:
 
         for i in range(frames_to_process):
             current_frame_idx = frames_indices[i]
-            target_idx = current_frame_idx + step_size*horizon
+            target_idx = current_frame_idx + step_size
             target_frame = data_processor.get_frame_data(movie_num, target_idx)
 
             # Get current frame and action

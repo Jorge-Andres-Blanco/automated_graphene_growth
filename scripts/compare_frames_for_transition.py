@@ -20,7 +20,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     hist = 1
-    step_size = 30
+    step_size = 45
     hidden_dimension=1024
     normalization="layer"
     activation="leaky_relu"
@@ -31,6 +31,7 @@ def main():
                                                         normalization=normalization,
                                                         activation=activation,
                                                         num_hidden_layers=2,
+                                                        step_size=step_size,
                                                         history=hist)
 
     model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
@@ -47,8 +48,8 @@ def main():
     data_processor = HDF5Processor(encoder=DinoEncoder())
 
     steps_in_future = 2
-    movie_num = 2
-    initial_frame_idx = 2000
+    movie_num = 7#2
+    initial_frame_idx = 180#2000
 
     target_frame_idx = initial_frame_idx + step_size*steps_in_future
     frame_0 = data_processor.get_frame_data(movie_num, initial_frame_idx)
@@ -63,7 +64,7 @@ def main():
                                             data_processor=HDF5Processor(encoder=DinoEncoder()),
                                             frame_0=frame_0, frame_1=frame_1, a0=a0,
                                             actual_flow_sequence=actual_flow, save_path=save_path,
-                                            frame_idx=initial_frame_idx, target_idx=target_frame_idx)
+                                            frame_idx=initial_frame_idx, target_idx=target_frame_idx, frames2seconds=True)
 
     return None
 

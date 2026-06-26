@@ -32,7 +32,8 @@ def generate_video_frames_from_logs(csv_log_path: str | Path,
                              target_frame: np.ndarray,
                              model: EnsembleTransitionModel,
                              data_processor: HDF5Processor,
-                             evaluator: Evaluator) -> tuple[list[str | Path], str | Path]:
+                             evaluator: Evaluator,
+                             **kwargs) -> tuple[list[str | Path], str | Path]:
     """
     Reads model decisions from a CSV log, generates sequential plots, and compiles them into an MP4.
     """
@@ -76,8 +77,8 @@ def generate_video_frames_from_logs(csv_log_path: str | Path,
             actual_flow_sequence=actual_flow,
             predicted_flow_sequence=pred_flows,
             frame_idx=current_frame_idx,
-            target_idx=target_idx,
-            horizon=4
+            horizon=4,
+            **kwargs
         )
         saved_images.append(save_path)
         print(f"Rendered frame {i+1}/{frames_to_process}")

@@ -4,7 +4,6 @@ import numpy as np
 from src.data_handling import TransitionDataLoader
 from src.utils.evaluation import Evaluator
 from src.models import EnsembleTransitionModel, Trainer
-import argparse
 
 if __name__ == "__main__":
 
@@ -17,7 +16,7 @@ if __name__ == "__main__":
     activation = "leaky_relu"
     hidden_dimension = 1024
     hist = 1
-    step_size = 30
+    step_size = 45
     normalization = "layer"
 
     #Define model
