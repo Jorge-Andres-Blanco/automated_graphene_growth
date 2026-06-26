@@ -20,7 +20,7 @@ learned world model. The architecture is:
                  (In a real experiment: sends new control values to the instrument)
 
 """
-
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -31,7 +31,7 @@ class TransitionModel(nn.Module):
 
     """
     
-    def __init__(self, latent_dim=384, action_dim=1, hidden_dim=512, num_hidden_layers=2, history = 1, normalization = "layer", activation = "relu", dropout = 0.15):
+    def __init__(self, latent_dim=384, action_dim=1, hidden_dim=1024, num_hidden_layers=2, history = 1, normalization = "layer", activation = "leaky_relu", dropout = 0.15, step_size = None):
         """
         How to use:
         
@@ -53,16 +53,10 @@ class TransitionModel(nn.Module):
         self.action_dim = action_dim
         self.hidden_dim = hidden_dim
         self.num_hidden_layers = num_hidden_layers
+        self.step_size = step_size
 
         self.register_buffer('a_min', torch.tensor(0.0))
         self.register_buffer('a_max', torch.tensor(15.0))
-
-
-        input_dim = latent_dim*history + action_dim*history
-
-
-        layers = [nn.Linear(input_dim, hidden_dim), nn.ReLU()]
-
 
         # Normalization
         if normalization == "batch":
@@ -91,6 +85,11 @@ class TransitionModel(nn.Module):
 
         
         # Structure
+
+        input_dim = latent_dim*history + action_dim*history
+
+
+        layers = [nn.Linear(input_dim, hidden_dim), activation, normalization, nn.Dropout(p=dropout)]
 
         for _ in range(num_hidden_layers):
         
@@ -276,7 +275,7 @@ class EnsembleTransitionModel(nn.Module):
 
 
     @torch.no_grad()
-    def predict_action_losses(self, steps: int, z_init: torch.Tensor, a_init: torch.Tensor, a_pos:str = "all", target:torch.Tensor = None):
+    def predict_action_losses(self, planning_horizon: int, z_init: torch.Tensor, a_init: torch.Tensor, target:torch.Tensor, a_pos:str = "all"):
         """
         Evaluates hypothetical constant-action sequences over a future horizon and 
         scores them against a target state.
@@ -289,7 +288,7 @@ class EnsembleTransitionModel(nn.Module):
         # Define Action Space
         # Every 0.5 to analyze intermediate values
         if a_pos == "all":
-            a_search = torch.arange(0, 20, 1, device=self.device)
+            a_search = torch.arange(0, 10, 1, device=self.device)
         elif a_pos == "closer_5":
             a_current = a_init[-1].item()
             a_search = torch.arange(a_current - 2, a_current + 3, 1, device=self.device)
@@ -300,21 +299,21 @@ class EnsembleTransitionModel(nn.Module):
             raise ValueError("Invalid a_pos. Use 'all', 'closer_5', or 'closer_7'.")
 
         # Clamp actions to ensure they don't fall below zero
-        a_search = torch.clamp(a_search, min=0)
+        a_search = torch.clamp(a_search, min=0, max=10)
 
         possibilities = len(a_search)
 
         # Predictions
-        predictions = torch.zeros((possibilities, self.num_models, steps, 384), device=self.device)
+        predictions = torch.zeros((possibilities, self.num_models, planning_horizon, 384), device=self.device)
         
         for i, a_fut in enumerate(a_search):
             
-            a_fut = a_fut * torch.ones(steps, 1, device=self.device)
+            a_fut = a_fut * torch.ones(planning_horizon, 1, device=self.device)
 
             predictions[i] = self.predict_next_steps(z_init, a_init, a_fut)
 
 
-        # Target expansion to shape (1,1,1,384) and then as predicions (possibilities, num_models, steps, 384)
+        # Target expansion to shape (1,1,1,384) and then as predicions (possibilities, num_models, planning_horizon, 384)
         target_exp = target.view(1,1,1,-1).expand_as(predictions).to(self.device)
 
         # Loss
@@ -329,22 +328,21 @@ class EnsembleTransitionModel(nn.Module):
     
 
     @torch.no_grad()
-    def predict_next_step(self, steps: int, z_init: torch.Tensor, a_init: torch.Tensor, a_pos:str = "all", target:torch.Tensor = None, aggregate_steps:str = "horizon_loss"):
+    def predict_next_step(self, planning_horizon: int, z_init: torch.Tensor, a_init: torch.Tensor, a_pos:str = "all", target:torch.Tensor = None, aggregate_steps_horizon:str = "horizon_loss"):
 
         """
         Returns best next step with standard deviation
         """
-        device = z_init.device
-        losses, a_search = self.predict_action_losses(steps, z_init, a_init, a_pos, target)
+        losses, a_search = self.predict_action_losses(planning_horizon, z_init, a_init, target, a_pos)
         
-        if aggregate_steps == "horizon_loss":
+        if aggregate_steps_horizon == "horizon_loss":
             losses = losses[:,:,-1]
-        elif aggregate_steps == "mean":
+        elif aggregate_steps_horizon == "mean":
             losses = losses.mean(dim=-1)
-        elif aggregate_steps == "cumulative_sum":
+        elif aggregate_steps_horizon == "cumulative_sum":
             losses = losses.sum(dim=-1)
         else:
-            raise ValueError("Invalid aggregate_steps. Use 'horizon_loss', 'mean', or 'cumulative_sum'.")
+            raise ValueError("Invalid aggregate_steps_horizon. Use 'horizon_loss', 'mean', or 'cumulative_sum'.")
         
 
         #Get the best_action of each model
@@ -375,3 +373,91 @@ class EnsembleTransitionModel(nn.Module):
     
         except FileNotFoundError:
             print(f"Model {i} not found")
+
+    
+    
+    def get_best_action(self, horizon: int, current_z: torch.Tensor, current_a: torch.Tensor, target_z: torch.Tensor, action_space: str = "all"):
+        """
+        Evaluates potential actions and returns the best immediate CH4 flow to apply.
+        
+        Args:
+            horizon (int): The planning horizon.
+            current_z (np.ndarray or Tensor): Current latent state embedding.
+            current_a (float or Tensor): The currently applied CH4 flow.
+            target_z (np.ndarray or Tensor): The goal latent state embedding.
+            action_space (str): The subset of actions to evaluate (e.g., "all", "closer_7").
+            
+        Returns:
+            float: The optimal CH4 flow value to execute next.
+        """
+        
+        # 1. Format inputs for the model (ensure they are batches of sequences)
+        if not isinstance(current_z, torch.Tensor):
+            current_z = torch.from_numpy(current_z).float().unsqueeze(0).to(self.device)
+        if not isinstance(current_a, torch.Tensor):
+            current_a = torch.tensor([current_a], dtype=torch.float32).to(self.device)
+        if not isinstance(target_z, torch.Tensor):
+            target_z = torch.tensor(target_z, dtype=torch.float32).to(self.device)
+
+
+        # 2. Ask the model to simulate the futures
+        with torch.no_grad(): # Critical for speed: we are planning, not training!
+            losses, actions_evaluated = self.predict_action_losses(
+                steps=horizon,
+                z_init=current_z,
+                a_init=current_a,
+                a_pos=action_space,
+                target=target_z
+            )
+
+        # 3. Process the losses (Aggregate across time steps and ensemble models)
+        # losses shape: (num_actions, num_models, steps)
+        losses_np = losses.cpu().numpy()
+        actions_np = actions_evaluated.cpu().numpy()
+
+        # Average loss across the temporal rollout (axis=2) and ensemble models (axis=1)
+        mean_losses = losses_np.mean(axis=(1, 2))
+
+        # Select the optimal action
+        best_action_idx = np.argmin(mean_losses)
+        best_action = actions_np[best_action_idx]
+
+        print(f"[Planner] Best predicted action: {best_action:.2f} sccm (Loss: {mean_losses[best_action_idx]:.4f})")
+
+        return float(best_action)
+
+
+
+    @torch.no_grad()
+    def predict_action_results(self, planning_horizon: int, z_init: torch.Tensor, a_init: torch.Tensor, a_pos:str = "all"):
+        """
+        Evaluates hypothetical constant-action sequences over a future horizon and returns the resulting predictions.
+        """
+
+        # Define Action Space
+        if a_pos == "all":
+            a_search = torch.arange(0, 10, 1, device=self.device)
+        elif a_pos == "closer_5":
+            a_current = a_init[-1].item()
+            a_search = torch.arange(a_current - 2, a_current + 3, 1, device=self.device)
+        elif a_pos == "closer_7":
+            a_current = a_init[-1].item()
+            a_search = torch.arange(a_current - 3, a_current + 4, 1, device=self.device)
+        else:
+            raise ValueError("Invalid a_pos. Use 'all', 'closer_5', or 'closer_7'.")
+
+        # Clamp actions to ensure they don't fall below zero
+        a_search = torch.clamp(a_search, min=0, max=10)
+        possibilities = len(a_search)
+
+        # Predictions
+        predictions = torch.zeros((possibilities, self.num_models, planning_horizon, 384), device=self.device)
+        
+        for i, a_fut in enumerate(a_search):
+            
+            a_fut = a_fut * torch.ones(planning_horizon, 1, device=self.device)
+
+            predictions[i] = self.predict_next_steps(z_init, a_init, a_fut)
+
+        # Returns predictions (possibilities, num_models, planning_horizon) and a_search (possibilities,)
+        return predictions, a_search

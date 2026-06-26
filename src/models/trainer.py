@@ -35,9 +35,9 @@ class Trainer:
 
         Parameters:
             model to train
-            z_data shape (batch_size, history, latent_dim)
-            a_data shape (batch_size, history, action_dim)
-            y_data shape (batch_size, latent_dim)
+            z_data shape (total_samples, history, latent_dim)
+            a_data shape (total_samples, history, action_dim)
+            y_data shape (total_samples, latent_dim)
             save_model_as model name (.pth), empty to not save
 
         Returns:
@@ -52,15 +52,15 @@ class Trainer:
         model.to(device)
         model.train()
 
-        z_h, a_h, y = torch.from_numpy(z_data).float(), torch.from_numpy(a_data).float(), torch.from_numpy(y_data).float()
+        z_t, a_t, y_t = torch.from_numpy(z_data).float(), torch.from_numpy(a_data).float(), torch.from_numpy(y_data).float()
 
         optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
 
-        n_samples = z_h.shape[0]
+        n_samples = z_t.shape[0]
         
         losses = []
 
-        mse_loss = nn.MSELoss()
+        mse_loss = nn.MSELoss(reduction='none') # Compute the MSE loss for each sample separately
 
 
         for epoch in range(self.epochs):
@@ -79,19 +79,22 @@ class Trainer:
                 idx = perm[i:i + self.batch_size]            
 
                 # Current batch to device
-                z_n_i = z_h[idx].to(device)
-                y_n_i = y[idx].to(device)
-                a_n_i = a_h[idx].to(device)
+                # Note: z_batch_i and a_batch_i will have shape (batch_size, history, dim), y_batch_i will have shape (batch_size, dim)
+                z_batch_i = z_t[idx].to(device)
+                y_batch_i = y_t[idx].to(device)
+                a_batch_i = a_t[idx].to(device)
 
 
                 # Forward pass, compute loss, backpropagation
-                z_pred = model(z_n_i, a_n_i)
+                z_pred = model(z_batch_i, a_batch_i)
+                true_delta_z = (y_batch_i-z_batch_i[:, -1, :]).detach()
+                scale = (1.0 + torch.linalg.norm(true_delta_z, dim =-1))
 
-                loss = mse_loss(z_pred, y_n_i)
+                loss = torch.mean(scale * mse_loss(z_pred, y_batch_i).mean(dim=-1))
 
                 loss.backward()
 
-                nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0) # This is to avoid sudden changes in the parameters
+                #nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0) # This is to avoid sudden changes in the parameters
 
                 optimizer.step()
 
@@ -154,7 +157,7 @@ class Trainer:
 
             z_data, a_data, y_data = data_loader.load_full_dataset()
 
-            model, loss = self.train_transition_model(z_data, a_data, y_data, model=model, save_model_as = model_name)
+            model, loss = self.train_transition_model(model=model, z_data=z_data, a_data=a_data, y_data=y_data, save_model_as = model_name)
             
             losses.append(loss)
 
@@ -164,35 +167,40 @@ class Trainer:
 
 
 
-    def train_ensmble_with_bagging(self, ensemble_model: 'EnsembleTransitionModel', data_loader: 'TransitionDataLoader', save_prefix = ""):
+    def train_ensemble_with_bagging(self, ensemble_model: 'EnsembleTransitionModel', data_loader: 'TransitionDataLoader', save_prefix = ""):
         """
-        Trains an ensemble model using Bootstrap Aggregating (Bagging).
+        Trains an ensemble model using Bootstrap Aggregating (Bagging) from a global pool.
 
         For each model in the ensemble, a new dataset is constructed by randomly 
-        sampling scenes with replacement from the full dataset. This increases 
-        variance among the models, improving the ensemble's overall robustness.
+        sampling transition pairs (z, a, y) with replacement from the flattened 
+        global dataset. This breaks temporal correlations, forces the model to learn 
+        true transition dynamics, and increases variance among the ensemble, 
+        improving overall robustness.
 
         Parameters
         ----------
         ensemble_model : EnsembleTransitionModel
             The ensemble model containing the individual transition networks.
         data_loader : TransitionDataLoader
-            The object that pases the training data.
-        save_prefix : str
+            The object that parses and extracts the chronological training data.
+        save_prefix : str, optional
             Prefix for saving the individual model weights (e.g., hyperparameter ID).
-        step_size : int
-            The strided gap between consecutive measurements.
+            Defaults to "".
             
         Returns
         -------
         ensemble_model : EnsembleTransitionModel
             The fully trained ensemble.
-        losses : np.ndarray
-            Array containing the loss history for each individual model.
+            
+        Notes
+        -----
+        The loss history for each individual model is stored internally in the 
+        `self.losses` attribute as a numpy array.
         """
         losses = []
-        # Divide sequences into scenes (get scenes indices).
-        scenes_indices = data_loader.generate_scene_indices()
+
+        z_train, a_train, y_train = data_loader.load_full_dataset()
+        total_samples = z_train.shape[0]
 
         # Training for each model
         for i, model in enumerate(ensemble_model.models):
@@ -200,13 +208,15 @@ class Trainer:
             print(f"Training model {i+1}/{ensemble_model.num_models}")
             model_name = f"{save_prefix}_transition_model_{i}.pth" if save_prefix else f"transition_model_{i}.pth"
             
-            z_data, a_data, y_data = data_loader.load_from_sample_scenes_with_replacement(scenes_indices)
+            bootstrap_indices = np.random.choice(total_samples, size=total_samples, replace=True)
+            
+            z_bag, a_bag, y_bag = z_train[bootstrap_indices], a_train[bootstrap_indices], y_train[bootstrap_indices]
 
-            model, loss = self.train_transition_model(z_data, a_data, y_data, model=model, save_model_as = model_name)
+            model, loss = self.train_transition_model(model=model, z_data=z_bag, a_data=a_bag, y_data=y_bag, save_model_as=model_name)
             
             losses.append(loss)
 
-            del z_data, a_data, y_data
+            del z_bag, a_bag, y_bag
             gc.collect()
 
         self.losses = np.array(losses)

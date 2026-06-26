@@ -3,6 +3,7 @@ import os
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage import exposure
 
 
 def plot_2_frames(frame_0, frame_1):
@@ -547,23 +548,25 @@ def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, st
         plt.show()
 
 
-def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, aggregate='mean', ax=None, save_path=None):
+def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, aggregate='mean', ax=None, save_path=None, show=True):
     """
     Visualizes the predictive losses for different constant-action sequences.
 
     Parameters
     ----------
     losses : torch.Tensor or np.ndarray
-        The distance metric for each action sequence. Shape: (possibilities, num_models, steps).
+        The distance metric for each action sequence. Shape: (possibilities, num_models, planning_horizon).
     actions : torch.Tensor, np.ndarray, or list
         The corresponding action values that were evaluated. Length: (possibilities,).
     aggregate : str or None
         If 'mean', plots a single bar per action representing the loss averaged 
-        across all future steps. If None, plots a grouped bar chart showing the 
+        across all future steps (planning_horizon). If None, plots a grouped bar chart showing the 
         loss at each specific future step.
     save_path : str or pathlib.Path, optional
         If provided, saves the figure to this location.
-            
+    show : bool, optional
+        If True, displays the figure. If False, only saves it.
+
         Returns
         -------
         None
@@ -609,34 +612,29 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
             alpha=0.85
         )
         
-        ax.set_ylabel("Mean Loss (MSE + Alignment)", fontsize = 14)
-        ax.set_title("Average Predictive Loss per Action Sequence", fontsize = 16)
+        ax.set_ylabel("Mean Planning Loss", fontsize = 18)
         
     elif aggregate is None:
+        # THIS IS INCOMPLETE
         # Shapes become (possibilities, steps)
-        mean_losses = losses.mean(axis=1)
-        std_losses = losses.std(axis=1)
+        mean_losses = losses.mean(axis=1)[:,-1] # Only plot the final step's loss
+        std_losses = losses.std(axis=1)[:,-1] # Only plot the final step's standard deviation
+
+        # Color the best (lowest loss) action distinctly to make the chart actionable
+        best_idx = np.argmin(mean_losses)
+        colors = ['#1f77b4' if i != best_idx else '#2ca02c' for i in range(num_actions)]
         
-        x_indices = np.arange(num_actions)
-        bar_width = 0.8 / steps
-        
-        # Calculate offsets to perfectly center the group of bars over the tick mark
-        offsets = np.linspace(-0.4 + bar_width/2, 0.4 - bar_width/2, steps)
-        
-        for s in range(steps):
-            ax.bar(
-                x_indices + offsets[s], 
-                mean_losses[:, s], 
-                yerr=std_losses[:, s], # Apply the step-specific standard deviation
-                width=bar_width, 
-                capsize=3,             # Smaller caps for crowded grouped bars
-                label=f'Step {s+1}',
-                alpha=0.9,
-                edgecolor='black'
-            )
-        ax.set_ylabel("Step-wise Loss", fontsize = 14)
-        ax.set_title("Temporal Predictive Loss per Action (Error bars = Ensemble Std)", fontsize = 16)
-        ax.legend(title="Rollout Step", fontsize = 12)
+        ax.bar(
+            actions.astype(str), 
+            mean_losses, 
+            yerr=std_losses,
+            ecolor='red', 
+            capsize=5,             # Adds horizontal caps to the error bars
+            alpha=0.85,
+            edgecolor='black',
+            color=colors
+        )
+        ax.set_ylabel("Planning Loss at last step", fontsize = 18)
         
     else:
         raise ValueError("Invalid aggregate parameter. Use 'mean' or None.")
@@ -650,17 +648,18 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels)
     ax.set_xlim(-0.5,num_actions-0.5)
-    ax.tick_params(axis='both', labelsize = 12)
-    ax.set_xlabel("Constant CH4 Action Value", fontsize = 14)
+    ax.tick_params(axis='both', labelsize = 16)
+    ax.set_xlabel(r"Constant CH$_4$ Flow Rate (sccm)", fontsize = 18)
     ax.grid(axis='y', linestyle='--', alpha=0.7)
-    
+    ax.set_title(r"Planning Loss per CH$_4$ Flow Rate", fontsize = 20)
+
     plt.tight_layout()
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Saved plot to {save_path}")
-        
-    plt.show()
+    if show:
+        plt.show()
 
 
 def plot_actions_vs_time_for_sequence(ensemble_model, z_sequence, a_sequence, step_size, history, a_pos="all", future_steps=5, save_path=None):
@@ -1017,3 +1016,34 @@ def plot_evaluation_metrics(data_dir: str | Path):
     fig_cos.tight_layout()
     
     plt.show()
+
+
+def adjust_exposure_gray_image(img: np.ndarray):
+    """
+    Adjusts the exposure of a grayscale image using CLAHE (Contrast Limited Adaptive Histogram Equalization).
+
+    Parameters
+    ----------
+    img : np.ndarray
+        A 2D array representing the grayscale image.
+
+    Returns
+    -------
+    np.ndarray
+        The exposure-adjusted grayscale image.
+    """
+    if len(img.shape) != 2:
+        raise ValueError("Input image must be a 2D grayscale image.")
+    
+    image_norm = (img-np.min(img)) / (np.max(img) - np.min(img) + 1e-8)
+
+    img_x, img_y = img.shape
+    kx, ky = img_x//4, img_y//4 
+
+    image_clahe = exposure.equalize_adapthist(image_norm,
+                                              clip_limit=0.02,
+                                              kernel_size=(128,128)#(kx, ky)
+                                              )
+    
+    return image_clahe
+

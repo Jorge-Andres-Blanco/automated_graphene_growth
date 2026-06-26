@@ -11,6 +11,19 @@ data_file_list = list(folder_path.glob("*.npy"))
 save_folder_training = "/data/lmcat/Computer_vision/training_data/"
 save_folder_validation = "/data/lmcat/Computer_vision/validation_data/"
 
+"""
+evaluation_data_dict: This dictionary defines the intervals for evaluation (and implicitly training) data for each file.
+The structure is as follows:
+evaluation_data_dict = {
+"_N_": [(X,Y)],
+...
+}
+Where:
+N is the index of the movie/file in the DATA_FILES list (see hdf5_processor.py)
+(X,Y) is a tuple defining the start (X) and stop (Y) indices for the evaluation data slice.
+If X=Y, it means there is no evaluation data for that file, and all data will be used for training.
+It is important to add all files that are intended for training even if they do not contain evaluation data, to ensure they are processed and saved correctly.
+"""
 
 evaluation_data_dict = {
     "_0_": [(1800,2200)],
@@ -22,6 +35,8 @@ evaluation_data_dict = {
     "_6_": [(0,0)],
     "_7_": [(0,0)],
     "_8_": [(0,0)],
+    "_10_": [(0,0)],
+    "_11_": [(0,0)]
 }
 
 i_train_sequence = 0

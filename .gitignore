@@ -16,3 +16,5 @@ verb*.txt
 .venv
 env/
 logs/
+plots/
+videos/

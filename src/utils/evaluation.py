@@ -1,12 +1,18 @@
 from pathlib import Path
 import os
+
+from sklearn.preprocessing import scale
 from src.models import TransitionModel, EnsembleTransitionModel
 from src.data_handling import TransitionDataLoader
+from src.utils.plotting import plot_possible_actions_losses, adjust_exposure_gray_image
 import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.data_handling import HDF5Processor
 
 class Evaluator:
     """
@@ -187,11 +193,6 @@ class Evaluator:
             Step-wise cosine similarities. Shape: (T,).
         mse_loss : float
             Mean squared error loss of the ensemble mean prediction.
-            
-        Hardcoded Elements
-        ------------------
-        - PCA components: Hardcoded to 2 for visualization.
-        - Plot styling: Figure size (12, 5), colors, scatter settings.
         """
         ensemble_model.to(self.device)
         ensemble_model.eval()
@@ -204,43 +205,16 @@ class Evaluator:
 
             mean_pred, std_pred = ensemble_model.get_stats(z_eval, a_eval)
 
-            l2_distances = torch.linalg.norm(mean_pred - y_eval, dim = -1)
+            mse_loss = nn.MSELoss(reduction='none')
+            true_delta_z = (y_eval-z_eval[:, -1, :])
+            scale = (0.5+torch.linalg.norm(true_delta_z, dim =-1))
+            loss = torch.mean(scale * mse_loss(mean_pred, y_eval).mean(dim=-1))
+
             cos_similarities = nn.functional.cosine_similarity(mean_pred, y_eval, dim=-1)
-            mse_loss = nn.MSELoss()(mean_pred, y_eval)
-
-            # PCA
-
-            pca = PCA(n_components=2)
-            y_pca = pca.fit_transform(y_eval)
-            y_pred_pca = pca.transform(mean_pred)
-
-        # Plot
-
-        # PCA: one trajectory as a line
-        plt.figure(figsize=(12, 5)) 
-        plt.subplot(1, 3, 1)
-
-        plt.scatter(y_pca[:, 0], y_pca[:, 1], color="blue", alpha=0.65, label="Real")
-        plt.scatter(y_pred_pca[:, 0], y_pred_pca[:, 1], color="red", alpha=0.5, label="Predicted")
+            cos_similarity = cos_similarities.mean().item()
             
-        plt.xlabel('PC1')
-        plt.ylabel('PC2')
-        plt.legend()
 
-        plt.subplot(1, 3, 2)
-        plt.plot(l2_distances, label='L2 Distance', color = 'red')
-        plt.xlabel('Measurement')
-        plt.legend()
-
-        plt.subplot(1, 3, 3)
-        plt.plot(cos_similarities, label='Cosine Similarity')
-        plt.xlabel('Measurement')
-        plt.legend()
-
-        plt.suptitle('Transition Model Evaluation')
-        plt.show()
-
-        return l2_distances, cos_similarities, mse_loss.item()
+        return loss.item(), cos_similarity
 
     def evaluate_on_trajectory(self, model, z_traj, a_traj, y_traj):
 
@@ -572,4 +546,185 @@ class Evaluator:
                 cos_similarities[i] = torch.nn.functional.cosine_similarity(predictions, y_target, dim=-1).cpu().numpy()
                 mse_losses[i] = torch.nn.functional.mse_loss(predictions, y_target, reduction='none').mean(dim=-1).cpu().numpy()
 
+<<<<<<< HEAD
         return dz.mean(axis = 0), std_z.mean(axis = 0), l2_distances.mean(axis = 0), cos_similarities.mean(axis = 0)
+=======
+        return dz.mean(axis = 0), std_z.mean(axis = 0), l2_distances.mean(axis = 0), cos_similarities.mean(axis = 0)
+    
+    
+    def analyze_and_plot_transition(self,
+                                    model: EnsembleTransitionModel,
+                                    data_processor: 'HDF5Processor',
+                                    frame_0: np.ndarray,
+                                    frame_1: np.ndarray,
+                                    a0: np.ndarray,
+                                    predicted_flow_sequence:list | np.ndarray = [],
+                                    frames_range=None,
+                                    save_path=None,
+                                    actual_flow_sequence=None,
+                                    frame_idx=None,
+                                    target_idx=None,
+                                    horizon=2,
+                                    frames2seconds=False):
+        """
+        Encodes images, analyzes a transition, predicts optimal actions, and saves the plot to disk.
+        """
+        model.to(self.device)
+        model.eval()
+
+        # Encode the frames internally
+        embeddings = data_processor.encode_frames([frame_0, frame_1])
+        z0, z1 = embeddings[0], embeddings[1]
+
+        # 2. Calculate distances
+        l2_distance = np.linalg.norm(z0 - z1)
+        cosine_similarity = np.dot(z0, z1) / (np.linalg.norm(z0) * np.linalg.norm(z1))
+
+        # 3. Predict action losses
+        with torch.no_grad():
+            losses, actions_evaluated = model.predict_action_losses(
+                planning_horizon=horizon, 
+                z_init=torch.tensor([z0], dtype=torch.float32).to(self.device), 
+                a_init=torch.tensor([a0], dtype=torch.float32).to(self.device),
+                a_pos="all", 
+                target=torch.tensor(z1, dtype=torch.float32).to(self.device)
+            )
+
+        if isinstance(predicted_flow_sequence, list):
+            losses_np = losses.cpu().numpy() # shape (num_actions, num_models, horizon)
+            time_averaged_losses = losses_np.mean(axis=2)
+            mean_losses = time_averaged_losses.mean(axis=1)
+
+            best_action_idx = np.argmin(mean_losses)
+            best_action = actions_evaluated[best_action_idx]
+            predicted_flow_sequence.append(best_action.item())
+
+        # 4. Create the Plot
+        fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+
+        # Improve contrast:
+        frame_0 = adjust_exposure_gray_image(frame_0)
+        frame_1 = adjust_exposure_gray_image(frame_1)
+
+        axes[0, 0].imshow(frame_0, cmap='gray')
+        axes[0, 0].set_title(f"Current State (Frame {frame_idx})" if frame_idx is not None else "Current State", fontsize=18)
+        axes[0, 0].axis('off')
+
+        axes[0, 1].imshow(frame_1, cmap='gray')
+        axes[0, 1].set_title(f"Target State (Frame {target_idx})" if target_idx is not None else "Target State", fontsize=18)
+        axes[0, 1].axis('off')
+
+        plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean', ax=axes[1, 0], show=False)
+
+        axes[1, 1].set_title(r"Applied CH$_4$ Flow Rate", fontsize=20)
+        axes[1, 1].set_ylabel(r"CH$_4$ Flow Rate(sccm)", fontsize=18)
+        axes[1, 1].grid(True, linestyle='--', alpha=0.7)
+
+        max_y=10
+
+        if actual_flow_sequence is not None and len(actual_flow_sequence) > 0:
+            if frames_range is None:
+                frames_range = np.arange(frame_idx, frame_idx + len(actual_flow_sequence))
+                max_y = max(max_y, np.max(actual_flow_sequence))
+            
+            if frames2seconds:
+                x_flow_plot = (frames_range - frames_range[0])*2 #To convert to seconds it needs to start at 0 and the frames should be spaced by 2 s
+                x_flow_plot_label = "Time (s)"
+            else:
+                x_flow_plot = frames_range
+                x_flow_plot_label = "Frame Index"
+
+
+            axes[1, 1].plot(x_flow_plot, actual_flow_sequence, color='darkred', linewidth=2, label="Actual Flow")
+            axes[1, 1].set_xlabel(x_flow_plot_label, fontsize=18)
+            axes[1, 1].set_ylim(0, max(np.max(actual_flow_sequence) * 1.1, 1.0))
+        
+        if  len(predicted_flow_sequence) > 1:
+            
+            axes[1, 1].plot(x_flow_plot, predicted_flow_sequence, marker='x', color='darkblue', linewidth=2, linestyle='--', label="Predicted Flow")
+            max_y = max(max_y, np.max(predicted_flow_sequence))
+
+        axes[1, 1].set_ylim(0, max_y * 1.1)
+        axes[1, 1].legend(loc="upper left", fontsize=16)
+        axes[1, 1].tick_params(axis='both', labelsize=16)
+
+        title_text = (
+            f"Transition Analysis\n"
+            f"L2 Distance: {l2_distance:.4f}  |  Cosine Similarity: {cosine_similarity:.4f}"
+        )
+        plt.suptitle(title_text, fontsize=20, fontweight='bold')
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=300)
+            plt.close(fig)
+        else:
+            plt.show()
+
+    
+    def generate_video_frames_for_validation(self,
+                                            movie_num: int,
+                                            model: EnsembleTransitionModel,
+                                            data_processor: 'HDF5Processor',
+                                            horizon: int=2) -> tuple[list[str | Path], str | Path]:
+
+        # Validation sequence from manual partitioning (see scripts/manual_data_partitioning.py)
+        if movie_num == 0:
+            frames_indices = np.arange(1800,2200,2)
+        elif movie_num == 1:
+            frames_indices = np.arange(2600,2900,2)
+        elif movie_num == 2:
+            frames_indices = np.arange(1700,2100,2)
+        elif movie_num == 4:
+            frames_indices = np.arange(0,500,2)
+        else:
+            total_frames = data_processor.get_length_of_measurement_sequence(movie_num)
+            frames_indices = np.arange(0, total_frames, 5)
+                    
+        frames_to_process = len(frames_indices) # We will predict 15 frames into the future, so we need to stop 15 frames before the end
+
+        # Prepare temporary folder for frames
+        temp_dir = Path("/data/lmcat/Computer_vision/automated_graphene_growth/plots/temp_video_frames")
+        temp_dir.mkdir(exist_ok=True)
+        saved_images = []
+        step_size = model.models[0].step_size
+
+        pred_flows = [] # values to be filled inside the analyze_and_plot_transition function
+
+        for i in range(frames_to_process):
+            current_frame_idx = frames_indices[i]
+            target_idx = current_frame_idx + step_size
+            target_frame = data_processor.get_frame_data(movie_num, target_idx)
+
+            # Get current frame and action
+            frame_0 = data_processor.get_frame_data(movie_num, current_frame_idx)
+            a0 = data_processor.get_frame_data(movie_num, current_frame_idx, measurement="CH4")
+
+            # Slicing history up to the current index (inclusive)
+            current_history_indices = frames_indices[:i+1]
+            
+            # Note: get_frame_data accepts an array of indices to return sequence data
+            actual_flow = data_processor.get_frame_data(movie_num, current_history_indices, measurement="CH4").flatten()
+            
+            # Plot and save
+            save_path = temp_dir / f"frame_{i:04d}.png"
+            self.analyze_and_plot_transition(
+                model=model,
+                data_processor=data_processor,
+                frame_0=frame_0,
+                frame_1=target_frame,
+                a0=a0,
+                save_path=save_path,
+                frames_range=current_history_indices, # Exact x-axis points
+                actual_flow_sequence=actual_flow,
+                predicted_flow_sequence=pred_flows,
+                frame_idx=current_frame_idx,
+                target_idx=target_idx,
+                horizon=horizon
+            )
+            saved_images.append(save_path)
+            print(f"Rendered frame {i+1}/{frames_to_process}")
+
+        return saved_images, temp_dir
+>>>>>>> training_modification
