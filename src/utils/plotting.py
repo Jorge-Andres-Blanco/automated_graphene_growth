@@ -3,6 +3,11 @@ import os
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+import matplotlib.font_manager as fm
+import matplotlib.gridspec as gridspec
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from skimage import exposure
 
 
@@ -651,8 +656,17 @@ def plot_possible_actions_losses(losses:torch.Tensor, actions: torch.Tensor, agg
     ax.tick_params(axis='both', labelsize = 16)
     ax.set_xlabel(r"Constant CH$_4$ Flow Rate (sccm)", fontsize = 18)
     ax.grid(axis='y', linestyle='--', alpha=0.7)
-    ax.set_title(r"Planning Loss per CH$_4$ Flow Rate", fontsize = 20)
+    #ax.set_title(r"Planning Loss per CH$_4$ Flow Rate", fontsize = 20)
+    
+    # Using a hex color close to the green in your chart, with a black edge
+    min_handle = Patch(facecolor='#2ca02c', edgecolor='black', label='Minimum')
 
+    # Creating a line marker that mimics an error bar
+    std_handle = Line2D([0], [0], color='red', lw=1.5, marker='|', markersize=10, 
+                        markeredgewidth=1.5, linestyle='None', label='Standard Deviation')
+
+    # 2. Add the custom handles to the legend
+    ax.legend(handles=[min_handle, std_handle], loc='upper left', fontsize=14)
     plt.tight_layout()
     
     if save_path:
@@ -1018,7 +1032,7 @@ def plot_evaluation_metrics(data_dir: str | Path):
     plt.show()
 
 
-def adjust_exposure_gray_image(img: np.ndarray):
+def adjust_exposure_gray_image(img: np.ndarray, kernel_size=(128, 128), clip_limit=0.02) -> np.ndarray:
     """
     Adjusts the exposure of a grayscale image using CLAHE (Contrast Limited Adaptive Histogram Equalization).
 
@@ -1041,9 +1055,163 @@ def adjust_exposure_gray_image(img: np.ndarray):
     kx, ky = img_x//4, img_y//4 
 
     image_clahe = exposure.equalize_adapthist(image_norm,
-                                              clip_limit=0.02,
-                                              kernel_size=(128,128)#(kx, ky)
+                                              clip_limit=clip_limit,
+                                              kernel_size=kernel_size
                                               )
     
     return image_clahe
 
+
+def add_scalebar_to_ax(ax, pixels_length, scalebar_length, unit=r'$\mu$m', loc='lower right', color='white', linewidth=2, fontsize=12):
+    """
+    Adds a scale bar to a given matplotlib axis.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axis to which the scale bar will be added.
+    pixels_length : float
+        The length of the scale bar in pixels.
+    scalebar_length : float
+        The length of the scale bar in real-world units.
+    loc : str, optional
+        Location of the scale bar on the axis. Default is 'lower right'.
+    color : str, optional
+        Color of the scale bar. Default is 'white'.
+    linewidth : int, optional
+        Width of the scale bar line. Default is 2.
+    fontsize : int, optional
+        Font size for the scale bar label. Default is 12.
+
+    Returns
+    -------
+    None
+        The function modifies the axis in place.
+    """
+    
+    # Create a scalebar object
+    fontprops = fm.FontProperties(size=14)
+    scalebar = AnchoredSizeBar(ax.transData,
+                               pixels_length,
+                               f'{scalebar_length}{unit}',
+                               loc=loc,
+                               pad=0.5,
+                               color=color,
+                               frameon=False,
+                               size_vertical=linewidth,
+                               fontproperties=fontprops)
+
+    ax.add_artist(scalebar)
+
+
+def create_composite_figure_to_describe_video(video_images: list,
+                                              target_image: np.ndarray,
+                                              time_data:np.ndarray,
+                                              flow_rate_data:np.ndarray,
+                                              timestamps:list,
+                                              save_path=None):
+    """
+    Creates a composite figure summarizing video with 5 images, comparing the final image with the target,
+    and including a CH4 flow over time plot.
+    Parameters:
+        video_images (list): List of 5 numpy arrays representing the video frames. Indices 0-3 are the top row sequential images. Index 4 is the top right final image.
+        target_image (numpy array): The reference/target image for the bottom right.
+        time_data (array-like): X-axis data for the plot.
+        flow_rate_data (array-like): Y-axis data for the plot.
+        timestamps (list): List of text strings for timestamps ("3 min", "6 min", etc.).
+                            Must include 5 timestamps: [t1, t2, t3, t4, final_t].
+        save_path (str | Path, optional): Path to save the composite figure. If None, the figure will not be saved.
+    """
+    # Create the main figure - slightly wider to give the right column space
+    fig = plt.figure(figsize=(13, 6))
+    
+    # Define a GridSpec: 2 rows, 5 columns
+    # Adjust width ratios slightly for visual balance
+    gs = gridspec.GridSpec(2, 5, width_ratios=[1, 1, 1, 1, 1.3], height_ratios=[1, 1])
+    
+    # Define styling constants to match the image precisely
+    letters = ["(a)", "(b)", "(c)", "(d)", "(e)", "(g)"]
+    text_font_size = 13
+
+
+    # Adjust exposure for all images
+    for i, img in enumerate(video_images):
+        video_images[i] = adjust_exposure_gray_image(img)
+    
+
+    # --- Top Row: 4 Sequential Images (a-d) ---
+    axes_top = [fig.add_subplot(gs[0, i]) for i in range(4)]
+    for i, ax in enumerate(axes_top):
+        ax.imshow(video_images[i], cmap='gray')
+        ax.axis('off')
+        
+        # 1. Bold Timestamp (Upper Left)
+        ax.text(0.05, 0.9, timestamps[i], transform=ax.transAxes, color='white', 
+                fontweight='bold', fontsize=text_font_size)
+        
+        # 2. Letter (Upper Right, ha='right')
+        ax.text(0.95, 0.9, letters[i], transform=ax.transAxes, color='white', 
+                ha='right',fontweight='bold', fontsize=text_font_size)
+
+        add_scalebar_to_ax(ax, pixels_length=143, scalebar_length=400, unit=r'$\mu$m', loc='lower right')
+
+
+    # --- Bottom Left: Process Plot (Spans Col 0-3) ---
+    # We update the plotting logic to match the complex red curve
+    ax_plot = fig.add_subplot(gs[1, 0:4])
+    
+    # Update to dark red color and appropriate line width
+    ax_plot.plot(time_data, flow_rate_data, linewidth=2) 
+    
+    # Update Y-label and X-label precisely
+    ax_plot.set_xlabel('Time (min)', fontsize=15)
+    ax_plot.set_xlim(left=0, right=np.max(time_data))
+
+    ax_plot.set_ylabel('CH$_4$ Flow Rate (sccm)', fontsize=15)
+    ax_plot.text(0.98, 0.9, '(f)', transform=ax_plot.transAxes, color='black', 
+                ha='right',fontweight='bold', fontsize=text_font_size)
+    ax_plot.tick_params(axis='both', which='major', labelsize=13)
+
+
+    # --- Right Column: Final Image and Target (f, g) ---
+    # Final video image (Row 0, Column 4) -> panel (f)
+    ax_final = fig.add_subplot(gs[0, 4])
+    ax_final.imshow(video_images[4], cmap='gray')
+    ax_final.axis('off')
+    
+    # Bold Timestamp "Final: XX min" (Upper Left)
+    ax_final.text(0.05, 0.9, timestamps[4], transform=ax_final.transAxes, color='white', 
+                   fontweight='bold', fontsize=text_font_size)
+    
+    # Letter (Upper Right)
+    ax_final.text(0.95, 0.9, letters[4], transform=ax_final.transAxes, color='white', 
+                   ha='right',fontweight='bold', fontsize=text_font_size)
+
+    add_scalebar_to_ax(ax_final, pixels_length=143, scalebar_length=400, unit=r'$\mu$m', loc='lower right')
+
+
+    # Target image (Row 1, Column 4) -> panel (g)
+    ax_target = fig.add_subplot(gs[1, 4])
+    target_image = adjust_exposure_gray_image(target_image)
+    ax_target.imshow(target_image, cmap='gray')
+    ax_target.axis('off')
+    
+    # Title "Target" (Upper Left)
+    ax_target.text(0.05, 0.9, "Target", transform=ax_target.transAxes, color='white', 
+                    fontweight='bold', fontsize=text_font_size)
+    
+    # Letter (Upper Right)
+    ax_target.text(0.95, 0.9, letters[5], transform=ax_target.transAxes, color='white', 
+                    ha='right',fontweight='bold', fontsize=text_font_size)
+    add_scalebar_to_ax(ax_target, pixels_length=143, scalebar_length=400, unit=r'$\mu$m', loc='lower right')
+
+
+    # Adjust spacing to minimize whitespace, matching the tight look
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=500, bbox_inches='tight')
+        print(f"Composite figure saved to {save_path}")
+
+    else:
+        plt.show()

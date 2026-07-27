@@ -2,9 +2,11 @@ import csv
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import torch
 from src.models import EnsembleTransitionModel
 from src.data_handling import HDF5Processor
 from src.utils.evaluation import Evaluator
+from src.utils.plotting import create_composite_figure_to_describe_video
 
 
 def log_model_decision(filepath: str | Path, frame_index: int, pred_flow: float):
@@ -84,3 +86,43 @@ def generate_video_frames_from_logs(csv_log_path: str | Path,
         print(f"Rendered frame {i+1}/{frames_to_process}")
 
     return saved_images, temp_dir
+
+
+def generate_image_from_log(csv_log_path: str | Path,
+                             movie_num: int,
+                             indices_frames_to_process: list[int],
+                             target_frame: np.ndarray,
+                             data_processor: HDF5Processor,
+                             **kwargs) -> tuple[list[str | Path], str | Path]:
+    """
+    Reads model decisions from a CSV log, generates sequential plots, and compiles them into an MP4.
+    """
+    # Read the log file
+    df = pd.read_csv(csv_log_path)
+    log_indices = df['frame_index'].values.astype(int)
+    time_data_minutes = (log_indices - log_indices[0])*2/60
+                    
+    # Prepare temporary folder for frames
+
+    video_frames = []
+    timestamps = []
+
+    for i in indices_frames_to_process:
+        frame = data_processor.get_frame_data(movie_num, log_indices[i])
+        frame = data_processor.encoder.transform(torch.tensor(frame, dtype=torch.float32).unsqueeze(0).to(data_processor.encoder.device)).squeeze().cpu().numpy()
+        time_min = time_data_minutes[i]
+        timestamps.append(f"{int(time_min)} min")
+        video_frames.append(frame)     
+
+    target_frame = data_processor.encoder.transform(torch.tensor(target_frame, dtype=torch.float32).unsqueeze(0).to(data_processor.encoder.device)).squeeze().cpu().numpy()   
+
+    ch4_flow = data_processor.get_frame_data(movie_num, log_indices, measurement="CH4").flatten()
+    
+
+    create_composite_figure_to_describe_video(
+        video_images=video_frames,
+        target_image=target_frame,
+        time_data=time_data_minutes,
+        flow_rate_data=ch4_flow,
+        timestamps=timestamps,
+        **kwargs)

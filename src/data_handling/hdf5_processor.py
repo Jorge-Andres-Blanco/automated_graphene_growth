@@ -215,7 +215,17 @@ class HDF5Processor:
         return frame
 
 
-    def get_frame_data(self, movie_num, frame_num, measurement = "basler"):
+    def get_frame_data(self, movie_num: int, frame_num: int, measurement: str = "basler") -> np.ndarray:
+
+        """
+        Retrieves a specific frame from the HDF5 dataset based on movie number and frame index.
+        Parameters:
+            movie_num (int): Index of the movie in the data_files list.
+            frame_num (int): Index of the frame to retrieve.
+            measurement (str): Type of measurement to retrieve (default is "basler").
+        Returns:
+            np.ndarray: The requested frame data.
+        """
 
         movie_path, file_name, scan_number, _ = self.data_files[movie_num]
 
@@ -225,7 +235,7 @@ class HDF5Processor:
 
         return frame
 
-    def get_length_of_measurement_sequence(self, movie_num, measurement:str = "basler"):
+    def get_length_of_measurement_sequence(self, movie_num: int, measurement: str = "basler") -> int:
 
         movie_path, file_name, scan_number, _ = self.data_files[movie_num]
         

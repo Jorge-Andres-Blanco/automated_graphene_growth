@@ -47,11 +47,13 @@ def main():
 
     data_processor = HDF5Processor(encoder=DinoEncoder())
 
-    steps_in_future = 2
-    movie_num = 7#2
-    initial_frame_idx = 180#2000
+    horizon = 1
+    movie_num = 7
+    initial_frame_idx = 90
 
-    target_frame_idx = initial_frame_idx + step_size*steps_in_future
+    target_frame_idx = initial_frame_idx + step_size*horizon
+    #target_frame_idx = 2000
+
     frame_0 = data_processor.get_frame_data(movie_num, initial_frame_idx)
     frame_1 = data_processor.get_frame_data(movie_num, target_frame_idx)
     a0 = data_processor.get_frame_data(movie_num, initial_frame_idx, measurement="CH4")
@@ -64,7 +66,8 @@ def main():
                                             data_processor=HDF5Processor(encoder=DinoEncoder()),
                                             frame_0=frame_0, frame_1=frame_1, a0=a0,
                                             actual_flow_sequence=actual_flow, save_path=save_path,
-                                            frame_idx=initial_frame_idx, target_idx=target_frame_idx, frames2seconds=True)
+                                            frame_idx=initial_frame_idx, target_idx=target_frame_idx,
+                                            time_unit='sec')
 
     return None
 

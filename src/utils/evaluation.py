@@ -4,11 +4,12 @@ import os
 from sklearn.preprocessing import scale
 from src.models import TransitionModel, EnsembleTransitionModel
 from src.data_handling import TransitionDataLoader
-from src.utils.plotting import plot_possible_actions_losses, adjust_exposure_gray_image
+from src.utils.plotting import plot_possible_actions_losses, adjust_exposure_gray_image, add_scalebar_to_ax
 import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+
 from sklearn.decomposition import PCA
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -546,9 +547,6 @@ class Evaluator:
                 cos_similarities[i] = torch.nn.functional.cosine_similarity(predictions, y_target, dim=-1).cpu().numpy()
                 mse_losses[i] = torch.nn.functional.mse_loss(predictions, y_target, reduction='none').mean(dim=-1).cpu().numpy()
 
-<<<<<<< HEAD
-        return dz.mean(axis = 0), std_z.mean(axis = 0), l2_distances.mean(axis = 0), cos_similarities.mean(axis = 0)
-=======
         return dz.mean(axis = 0), std_z.mean(axis = 0), l2_distances.mean(axis = 0), cos_similarities.mean(axis = 0)
     
     
@@ -565,7 +563,7 @@ class Evaluator:
                                     frame_idx=None,
                                     target_idx=None,
                                     horizon=2,
-                                    frames2seconds=False):
+                                    time_unit="sec"):
         """
         Encodes images, analyzes a transition, predicts optimal actions, and saves the plot to disk.
         """
@@ -603,21 +601,26 @@ class Evaluator:
         fig, axes = plt.subplots(2, 2, figsize=(16, 10))
 
         # Improve contrast:
+        frame_0 = data_processor.encoder.transform(torch.tensor(frame_0, dtype=torch.float32).unsqueeze(0).to(self.device)).squeeze().cpu().numpy()
+        frame_1 = data_processor.encoder.transform(torch.tensor(frame_1, dtype=torch.float32).unsqueeze(0).to(self.device)).squeeze().cpu().numpy()
+
         frame_0 = adjust_exposure_gray_image(frame_0)
         frame_1 = adjust_exposure_gray_image(frame_1)
 
         axes[0, 0].imshow(frame_0, cmap='gray')
+        add_scalebar_to_ax(axes[0, 0], pixels_length=143, scalebar_length=400, unit=r'$\mu$m', loc='lower right')
         axes[0, 0].set_title(f"Current State (Frame {frame_idx})" if frame_idx is not None else "Current State", fontsize=18)
         axes[0, 0].axis('off')
 
         axes[0, 1].imshow(frame_1, cmap='gray')
+        add_scalebar_to_ax(axes[0, 1], pixels_length=143, scalebar_length=400, unit=r'$\mu$m', loc='lower right')
         axes[0, 1].set_title(f"Target State (Frame {target_idx})" if target_idx is not None else "Target State", fontsize=18)
         axes[0, 1].axis('off')
 
         plot_possible_actions_losses(losses, actions_evaluated, aggregate='mean', ax=axes[1, 0], show=False)
 
         axes[1, 1].set_title(r"Applied CH$_4$ Flow Rate", fontsize=20)
-        axes[1, 1].set_ylabel(r"CH$_4$ Flow Rate(sccm)", fontsize=18)
+        axes[1, 1].set_ylabel(r"CH$_4$ Flow Rate (sccm)", fontsize=18)
         axes[1, 1].grid(True, linestyle='--', alpha=0.7)
 
         max_y=10
@@ -627,9 +630,12 @@ class Evaluator:
                 frames_range = np.arange(frame_idx, frame_idx + len(actual_flow_sequence))
                 max_y = max(max_y, np.max(actual_flow_sequence))
             
-            if frames2seconds:
+            if time_unit == "sec":
                 x_flow_plot = (frames_range - frames_range[0])*2 #To convert to seconds it needs to start at 0 and the frames should be spaced by 2 s
                 x_flow_plot_label = "Time (s)"
+            elif time_unit == "min":
+                x_flow_plot = (frames_range - frames_range[0])*2/60 #To convert to minutes it needs to start at 0 and the frames should be spaced by 2 s
+                x_flow_plot_label = "Time (min)"
             else:
                 x_flow_plot = frames_range
                 x_flow_plot_label = "Frame Index"
@@ -727,4 +733,3 @@ class Evaluator:
             print(f"Rendered frame {i+1}/{frames_to_process}")
 
         return saved_images, temp_dir
->>>>>>> training_modification

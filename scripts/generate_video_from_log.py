@@ -43,7 +43,7 @@ if __name__ == "__main__":
     
     else:
         target_frame_movie_num = 7
-        target_frame_idx = 320
+        target_frame_idx = 150
     
     
     target_frame = data_processor.get_frame_data(target_frame_movie_num, target_frame_idx)
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         model=ensemble_model,
         data_processor=data_processor,
         evaluator=evaluator,
-        frames2seconds=True
+        time_unit="min"
     )
     
 
