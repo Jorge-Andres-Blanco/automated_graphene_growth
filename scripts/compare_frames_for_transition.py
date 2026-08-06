@@ -24,7 +24,7 @@ def main():
     hidden_dimension=1024
     normalization="layer"
     activation="leaky_relu"
-    ensemble_model = ensemble_model = EnsembleTransitionModel(num_models=5,
+    ensemble_model = EnsembleTransitionModel(num_models=5,
                                                         latent_dim=384,
                                                         action_dim=1,
                                                         hidden_dim=1024,
@@ -47,9 +47,9 @@ def main():
 
     data_processor = HDF5Processor(encoder=DinoEncoder())
 
-    horizon = 1
+    horizon = 2
     movie_num = 7
-    initial_frame_idx = 90
+    initial_frame_idx = 180
 
     target_frame_idx = initial_frame_idx + step_size*horizon
     #target_frame_idx = 2000
