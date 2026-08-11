@@ -5,6 +5,7 @@ from src.data_handling.hdf5_processor import HDF5Processor
 from src.models import DinoEncoder
 import argparse
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 if __name__ == "__main__":
     
@@ -19,8 +20,8 @@ if __name__ == "__main__":
     movie_num = args.movie_num
     log_name = args.log_name
 
-    log_path = Path(f"/data/lmcat/Computer_vision/automated_graphene_growth/logs/{log_name}.csv")
-    output_img_path = Path(f"/data/lmcat/Computer_vision/automated_graphene_growth/plots/summary_{log_name+'_'+str(movie_num) if log_name=='validation' else log_name}.png")
+    log_path = PROJECT_ROOT / "logs" / f"{log_name}.csv"
+    output_img_path = PROJECT_ROOT / "plots" / f"summary_{log_name+'_'+str(movie_num) if log_name=='validation' else log_name}.png"
 
 
     indices_frames_to_process = [30, 60, 90, 120, -1]

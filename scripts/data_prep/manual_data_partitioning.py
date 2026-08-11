@@ -1,15 +1,26 @@
 import numpy as np
 from pathlib import Path
+import h5py
+import yaml
+from typing import List, Dict, Tuple
+from src.utils.misc import load_yaml_config
 
-#folder_path = Path(r"\\dfs\data\lmcat\Computer_vision\data_arrays")
-folder_path = Path("/data/lmcat/Computer_vision/data_arrays")
+PROJECT_ROOT = Path(__file__).resolve().parents[1] # Adjust this if your project structure changes, this assumes the script is in 'scripts/data_prep' and the config.yaml is in the root of the project.
+config_path = PROJECT_ROOT / 'config.yaml'
+
+
+config = load_yaml_config(config_path)
+
+folder_path = PROJECT_ROOT / "data_arrays"
+
+save_folder_training = PROJECT_ROOT / "training_data"
+save_folder_validation = PROJECT_ROOT / "validation_data"
+
+save_folder_training.mkdir(parents=True, exist_ok=True)
+save_folder_validation.mkdir(parents=True, exist_ok=True)
+
 
 data_file_list = list(folder_path.glob("*.npy"))
-
-#save_folder_training = "\\\\dfs\data\lmcat\Computer_vision\\training_data\\"
-#save_folder_validation = "\\\\dfs\data\lmcat\Computer_vision\\validation_data\\"
-save_folder_training = "/data/lmcat/Computer_vision/training_data/"
-save_folder_validation = "/data/lmcat/Computer_vision/validation_data/"
 
 """
 evaluation_data_dict: This dictionary defines the intervals for evaluation (and implicitly training) data for each file.

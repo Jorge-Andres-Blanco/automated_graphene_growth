@@ -1,0 +1,94 @@
+# Structure of the data files:
+# - path: (String) The directory path to the data file.
+# - file_name: (String) The exact name of the file.
+# - scan_number: (Integer) The scan identifier.
+# - crop_index: (Integer, List, or null) Index for cropping the data (e.g., to remove cooling phase). 
+#               It can also be a list [start_idx, end_idx] if you only want to use a specific interval. 
+#               Use 'null' if no cropping is required.
+# - training_ranges: (list) A list of intervals for training data. Each interval is a list [start_idx, end_idx].
+# - validation_ranges: (list) A list of intervals for validation data. Each interval is a list [start_idx, end_idx]. 
+
+data_files:
+  - path: "/data/lmcat/inhouse/20260312/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_1_120326_camera/CV_test_Gr_1_120326_camera_0001"
+    file_name: "CV_test_Gr_1_120326_camera_0001_with_experimental_data.h5"
+    scan_number: 1
+    crop_index: 3047
+    training_ranges: [[0, 1800], [2200, -1]]
+    validation_ranges: [[1800, 2200]]
+
+  - path: "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_2_160326_camera/CV_test_Gr_2_160326_camera_0001"
+    file_name: "CV_test_Gr_2_160326_camera_0001_with_experimental_data.h5"
+    scan_number: 1
+    crop_index: 6600
+    training_ranges: [[0, 2600], [2900, -1]]
+    validation_ranges: [[2600, 2900]]
+
+  - path: "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_3_170326_camera/CV_test_Gr_3_170326_camera_0001"
+    file_name: "CV_test_Gr_3_170326_camera_0001.h5"
+    scan_number: 1
+    crop_index: 7015
+    training_ranges: [[0, 1700], [2100, -1]]
+    validation_ranges: [[1700, 2100]]
+
+  - path: "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_4_080426_camera/Gr_4_080426_camera_0001/"
+    file_name: "Gr_4_080426_camera_0001.h5"
+    scan_number: 2
+    crop_index: 2500
+    training_ranges: [[0, -1]]
+    validation_ranges: []
+
+  - path: "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_5_090426_camera/Gr_5_090426_camera_0001/"
+    file_name: "Gr_5_090426_camera_0001.h5"
+    scan_number: 2
+    crop_index: null
+    training_ranges: [[500, -1]]
+    validation_ranges: [[0, 500]]
+
+  - path: "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_6_100426_camera/Gr_6_100426_camera_0001/"
+    file_name: "Gr_6_100426_camera_0001.h5"
+    scan_number: 1
+    crop_index: null
+    training_ranges: [[0, -1]]
+    validation_ranges: []
+
+  - path: "/data/lmcat/inhouse/20260428/ihma832/id10-surf/20260401/RAW_DATA/Gr_1_280426_camera/Gr_1_280426_camera_0001/"
+    file_name: "Gr_1_280426_camera_0001.h5"
+    scan_number: 3
+    crop_index: null
+    training_ranges: [[0, -1]]
+    validation_ranges: []
+
+  - path: "/data/lmcat/inhouse/20260428/ihma832/id10-surf/20260401/RAW_DATA/Gr_1_280426_camera/Gr_1_280426_camera_0001/"
+    file_name: "Gr_1_280426_camera_0001.h5"
+    scan_number: 4
+    crop_index: 1900
+    training_ranges: [[0, -1]]
+    validation_ranges: []
+
+  - path: "/data/lmcat/inhouse/20260428/ihma832/id10-surf/20260401/RAW_DATA/Gr_1_280426_camera/Gr_1_280426_camera_0001/"
+    file_name: "Gr_1_280426_camera_0001.h5"
+    scan_number: 5
+    crop_index: 820
+    training_ranges: [[0, -1]]
+    validation_ranges: []
+
+  - path: "/data/lmcat/inhouse/20260527/ihma851/id10-surf/20260501/RAW_DATA/Gr_2_270526_camera/Gr_2_270526_camera_0001/"
+    file_name: "Gr_2_270526_camera_0001.h5"
+    scan_number: 2
+    crop_index: null
+    training_ranges: []
+    validation_ranges: []
+
+  - path: "/data/lmcat/inhouse/20260527/ihma851/id10-surf/20260501/RAW_DATA/Gr_3_010626_camera/Gr_3_010626_camera_0001/"
+    file_name: "Gr_3_010626_camera_0001.h5"
+    scan_number: 2
+    crop_index: null
+    training_ranges: [[0, -1]]
+    validation_ranges: []
+
+  - path: "/data/lmcat/inhouse/20260616/ihma865/id10-surf/20260601/RAW_DATA/Gr_1_160626_camera/Gr_1_160626_camera_0001/"
+    file_name: "Gr_1_160626_camera_0001.h5"
+    scan_number: 2
+    crop_index: null
+    training_ranges: [[0, -1]]
+    validation_ranges: []

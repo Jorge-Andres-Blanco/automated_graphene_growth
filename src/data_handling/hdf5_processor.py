@@ -3,94 +3,24 @@ import h5py
 import hdf5plugin
 import os
 from src.models.dinov2_encoder import DinoEncoder
+from pathlib import Path
+import yaml
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  # Adjust the number of parents as needed
+CONFIG_PATH = PROJECT_ROOT / 'config.yaml'
 
-"""
-Structure of the data files:
-    [
-    (
-    "path_to_data_file",
-    "file_name",
-    scan_number,
-    crop_index # Index for cropping the data (In case you recorded more that you want to use, e.g. to remove cooling phase). It can also be a tuple (start_idx, end_idx) if you only want to use a specific interval.
-    ),
-    ...
-    ]
-"""
+with open(CONFIG_PATH, "r") as file:
+    config = yaml.safe_load(file)
 
 DATA_FILES = [
-        (
-         "/data/lmcat/inhouse/20260312/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_1_120326_camera/CV_test_Gr_1_120326_camera_0001",
-         "CV_test_Gr_1_120326_camera_0001_with_experimental_data.h5",
-            1,
-            3047
-        ),
-        (
-         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_2_160326_camera/CV_test_Gr_2_160326_camera_0001",
-         "CV_test_Gr_2_160326_camera_0001_with_experimental_data.h5",
-            1,
-            6600
-        ),
-        (
-         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/CV_test_Gr_3_170326_camera/CV_test_Gr_3_170326_camera_0001",
-         "CV_test_Gr_3_170326_camera_0001.h5",
-            1,
-            7015
-        ),
-        ("/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_4_080426_camera/Gr_4_080426_camera_0001/",
-         "Gr_4_080426_camera_0001.h5",
-            2,
-            2500
-        ),
-        (
-         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_5_090426_camera/Gr_5_090426_camera_0001/",
-         "Gr_5_090426_camera_0001.h5",
-            2,
-            None
-        ),
-        (
-         "/data/lmcat/inhouse/20260316/ihma818/id10-surf/20260301/RAW_DATA/Gr_6_100426_camera/Gr_6_100426_camera_0001/",
-         "Gr_6_100426_camera_0001.h5",
-            1,
-            None
-        ),
-        (
-         "/data/lmcat/inhouse/20260428/ihma832/id10-surf/20260401/RAW_DATA/Gr_1_280426_camera/Gr_1_280426_camera_0001/",
-         "Gr_1_280426_camera_0001.h5",
-            3,
-            None
-        ),
-        (
-         "/data/lmcat/inhouse/20260428/ihma832/id10-surf/20260401/RAW_DATA/Gr_1_280426_camera/Gr_1_280426_camera_0001/",
-         "Gr_1_280426_camera_0001.h5",
-            4,
-            1900
-        ),
-        (
-         "/data/lmcat/inhouse/20260428/ihma832/id10-surf/20260401/RAW_DATA/Gr_1_280426_camera/Gr_1_280426_camera_0001/",
-         "Gr_1_280426_camera_0001.h5",
-            5,
-            820
-        ),
-        (
-            "/data/lmcat/inhouse/20260527/ihma851/id10-surf/20260501/RAW_DATA/Gr_2_270526_camera/Gr_2_270526_camera_0001/",
-            "Gr_2_270526_camera_0001.h5",
-            2,
-            None
-        ),
-        (
-            "/data/lmcat/inhouse/20260527/ihma851/id10-surf/20260501/RAW_DATA/Gr_3_010626_camera/Gr_3_010626_camera_0001/",
-            "Gr_3_010626_camera_0001.h5",
-            2,
-            None
-        ),
-        (
-            "/data/lmcat/inhouse/20260616/ihma865/id10-surf/20260601/RAW_DATA/Gr_1_160626_camera/Gr_1_160626_camera_0001/",
-            "Gr_1_160626_camera_0001.h5",
-            2,
-            None
-        )
-    ]
+    (
+        item['path'],
+        item['file_name'],
+        item['scan_number'],
+        item['crop_index']
+    )
+    for item in config['data_files']
+]
 
 
 class HDF5Processor:

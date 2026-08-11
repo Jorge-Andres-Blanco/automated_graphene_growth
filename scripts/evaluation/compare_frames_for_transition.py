@@ -9,11 +9,10 @@ from src.models import DinoEncoder, EnsembleTransitionModel
 from src.utils.plotting import compare_images_in_latent_space, plot_possible_actions_losses
 from src.utils.evaluation import Evaluator
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  
 
-
-train_data_path = Path("/data/lmcat/Computer_vision/training_data")
-validation_data_path = Path("/data/lmcat/Computer_vision/validation_data")
-
+train_data_path = PROJECT_ROOT / "data_processing" / "training_data"
+validation_data_path = PROJECT_ROOT / "data_processing" / "validation_data"
 
 def main():
 

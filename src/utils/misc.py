@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 import imageio.v3 as iio
 import numpy as np
+import yaml
 
 def cleanup_directory(dir: Path):
     """
@@ -44,3 +45,9 @@ def compile_video_from_frames(saved_images: list[str | Path] | None,
     print(f"Video successfully saved to {output_video_path}")
 
     return None
+
+def load_yaml_config(config_path: Path) -> dict:
+    if not config_path.exists():
+        raise FileNotFoundError(f"Configuration file not found at {config_path}")
+    with open(config_path, 'r') as file:
+        return yaml.safe_load(file)

@@ -11,6 +11,7 @@ from src.models import DinoEncoder, EnsembleTransitionModel
 from src.utils.evaluation import Evaluator
 import argparse
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 if __name__ == "__main__":
     
@@ -27,8 +28,8 @@ if __name__ == "__main__":
     movie_num = args.movie_num
     log_name = args.log_name
 
-    log_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/logs/{log_name}.csv"
-    output_video_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/videos/validation_{log_name+'_'+str(movie_num) if log_name=='validation' else log_name}_replay.mp4"
+    log_path = PROJECT_ROOT / "logs" / f"{log_name}.csv"
+    output_video_path = PROJECT_ROOT / "videos" / f"validation_{log_name+'_'+str(movie_num) if log_name=='validation' else log_name}_replay.mp4"
     
     # Define log and target frame for video generation
     if log_name.startswith("hold_equilibrium"):

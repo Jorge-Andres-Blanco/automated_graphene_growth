@@ -6,7 +6,7 @@ from src.utils.evaluation import Evaluator
 from src.models import EnsembleTransitionModel, Trainer
 import gc
 
-
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 def main():
 

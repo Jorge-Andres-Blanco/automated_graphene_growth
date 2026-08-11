@@ -5,12 +5,13 @@ from src.data_handling import TransitionDataLoader
 from src.utils.evaluation import Evaluator
 from src.models import EnsembleTransitionModel, Trainer
 
+# To be changed according to the executing machine
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 def main():
-
-    # To be changed according to the executing machine
-    train_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\training_data")
-    validation_data_path = Path(r"\\dfs\data\lmcat\Computer_vision\validation_data")
+    # Data paths
+    train_data_path = PROJECT_ROOT / "data_processing" / "training_data"
+    validation_data_path = PROJECT_ROOT / "data_processing" / "validation_data"
     hist = 15
     step_size = 5
     train = True

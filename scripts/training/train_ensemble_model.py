@@ -5,11 +5,13 @@ from src.data_handling import TransitionDataLoader
 from src.utils.evaluation import Evaluator
 from src.models import EnsembleTransitionModel, Trainer
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
 if __name__ == "__main__":
 
     # Data paths
-    train_data_path = Path("/data/lmcat/Computer_vision/training_data")
-    validation_data_path = Path("/data/lmcat/Computer_vision/validation_data")
+    train_data_path = PROJECT_ROOT / "data_processing" / "training_data"
+    validation_data_path = PROJECT_ROOT / "data_processing" / "validation_data"
 
 
     #Define hyperparameters

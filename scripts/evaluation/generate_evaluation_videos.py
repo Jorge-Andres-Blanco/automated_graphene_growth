@@ -10,6 +10,7 @@ from src.models import DinoEncoder, EnsembleTransitionModel
 from src.utils.evaluation import Evaluator
 import argparse
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 if __name__ == "__main__":
     
@@ -40,7 +41,7 @@ if __name__ == "__main__":
                                             step_size=step_size,
                                             history=hist)
 
-    model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
+    model_name_prefix = PROJECT_ROOT.resolve().parent[1] / "models" / f"mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
 
     # Load weights
     try:
@@ -60,7 +61,7 @@ if __name__ == "__main__":
             horizon=3
         )
         
-        output_video_path = f"/data/lmcat/Computer_vision/automated_graphene_growth/videos/model_{step_size}/validation_{movie_num}_replay.mp4"        
+        output_video_path = PROJECT_ROOT / "videos" / f"model_{step_size}" / f"validation_{movie_num}_replay.mp4"
 
         # Compile video
         compile_video_from_frames(

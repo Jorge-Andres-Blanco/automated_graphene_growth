@@ -5,14 +5,14 @@ from pathlib import Path
 from src.models.dinov2_encoder import DinoEncoder
 from src.data_handling import HDF5Processor
 
-
+PROJECT_ROOT = Path(__file__).resolve().parents[1]  # Adjust this if your project structure changes, this assumes the script is in 'scripts/data_prep' and the config.yaml is in the root of the project.
 
 def main():
 
     # Inicialize the processor
     processor = HDF5Processor(encoder=DinoEncoder())
 
-    saving_folder = Path("/data/lmcat/Computer_vision/data_arrays")
+    saving_folder = PROJECT_ROOT / "data_arrays"
     saving_folder.mkdir(parents=True, exist_ok=True) # Ensure the folder exists
     
     measurement = "CH4"

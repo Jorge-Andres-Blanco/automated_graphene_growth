@@ -7,10 +7,10 @@ from src.data_handling.hdf5_processor import HDF5Processor
 from src.models import DinoEncoder
 from src.utils.plotting import adjust_exposure_gray_image, add_scalebar_to_ax
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-
-train_data_path = Path("/data/lmcat/Computer_vision/training_data")
-validation_data_path = Path("/data/lmcat/Computer_vision/validation_data")
+train_data_path = PROJECT_ROOT / "data_processing" / "training_data"
+validation_data_path = PROJECT_ROOT / "data_processing" / "validation_data"
 
 
 def main():

@@ -6,6 +6,7 @@ from src.utils.evaluation import Evaluator
 from src.models import EnsembleTransitionModel, Trainer
 import argparse
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2] 
 
 def main():
 
@@ -20,9 +21,8 @@ def main():
 
 
     # To be changed according to the executing machine
-    train_data_path = Path("/data/lmcat/Computer_vision/training_data")
-    validation_data_path = Path("/data/lmcat/Computer_vision/validation_data")
-
+    train_data_path = PROJECT_ROOT / "data_processing" / "training_data"
+    validation_data_path = PROJECT_ROOT / "data_processing" / "validation_data"
     step_size_list = [30]
     normalization = "layer"
     sequence_indices = range(0,4)
