@@ -3,46 +3,32 @@ from pathlib import Path
 import numpy as np
 import time
 from src.environment import ReactorEnv
-from src.models import DinoEncoder, EnsembleTransitionModel
+from src.models import DinoEncoder
 from src.controllers import CEMPlanner
-from src.data_handling import HDF5Processor
 from src.utils.logger import log_model_decision
+from src.utils.misc import load_model_from_yaml_config, load_yaml_config
 
-LOG_FILE_FOLDER = Path("/data/lmcat/Computer_vision/automated_graphene_growth/logs/")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+config_path = PROJECT_ROOT / "config.yaml"
 
 def main():
     # --- Setup ---
+    config = load_yaml_config(config_path)
+    step_size = config['execution']['step_size']
     print("Booting up Autonomous Graphene Control System...")
     log_file = f"active_learning_log_{time.strftime('%Y%m%d-%H%M')}.csv"
-    log_file_path = LOG_FILE_FOLDER / log_file
+    log_file_path = PROJECT_ROOT / "logs" / log_file
     env = ReactorEnv()
     encoder = DinoEncoder()
-    data_processor = HDF5Processor(encoder=encoder)
     
     # Load the trained model
-    # We first test the 45-step_size model, then the 30s, If we have time, we also try for the one with 60 
-    activation, normalization, hist, step_size, hidden_dimension = "leaky_relu", "layer", 1, 45, 1024
-
-    transition_model = EnsembleTransitionModel(
-        num_models=5,
-        latent_dim=384,
-        action_dim=1,
-        hidden_dim=hidden_dimension,
-        normalization=normalization,
-        activation=activation,
-        history=hist,
-        num_hidden_layers=2
-    ) 
-    model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
-
-    transition_model.load_ensemble(model_name_prefix)
+    transition_model = load_model_from_yaml_config(config_path)
 
     # Initialize the brain
     planner = CEMPlanner(transition_model=transition_model, horizon=2)
 
     # --- The Control Loop ---
-    print("Starting growth loop...")
-    predictions = []
+    print("Starting learning loop...")
     steps = 720
     for step in range(steps): #This should take a bit more than 2h
         
@@ -70,7 +56,7 @@ def main():
         print(f"Sleeping {step_size*2} seconds (step size)")
         time.sleep(step_size*2)
 
-    print("Autonomous growth loop has ended. Please check the log file for details and review")
+    print("Autonomous learning loop has ended. Please check the log file for details and review")
 
 if __name__ == "__main__":
     main()

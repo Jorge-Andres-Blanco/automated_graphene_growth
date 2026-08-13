@@ -1,3 +1,20 @@
+# ==========================================
+# EXECUTION & HARDWARE CONFIGURATION
+# ==========================================
+execution:
+  model_directory: "/data/lmcat/Computer_vision/models"
+  active_model:
+    num_models: 5
+    latent_dim: 384
+    action_dim: 1
+    activation: "relu"           # Update these when you promote a new model
+    normalization: "layer"
+    history_size: 4
+    step_size: 1
+    hidden_dimension: 256
+    num_hidden_layers: 2
+
+
 # Structure of the data files:
 # - path: (String) The directory path to the data file.
 # - file_name: (String) The exact name of the file.
