@@ -12,17 +12,18 @@ if __name__ == "__main__":
     # Data paths
     train_data_path = PROJECT_ROOT / "data_processing" / "training_data"
     validation_data_path = PROJECT_ROOT / "data_processing" / "validation_data"
+    saving_model_path = PROJECT_ROOT / "models" / "transition"
 
 
     #Define hyperparameters
     activation = "leaky_relu"
-    hidden_dimension = 1024
+    hidden_dimension = 2048
     hist = 1
     step_size = 45
     normalization = "layer"
 
     #Define model
-    model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
+    model_name_prefix = saving_model_path / f"mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
     ensemble_model = EnsembleTransitionModel(num_models=5,
                                                     latent_dim=384,
                                                     action_dim=1,
@@ -34,7 +35,7 @@ if __name__ == "__main__":
                                                     history=hist)
 
     # To be changed according to the executing machine
-    trainer = Trainer(lr=1e-3, batch_size=64, epochs=5)
+    trainer = Trainer(lr=1e-3, batch_size=64, epochs=10)
     train_data_loader = TransitionDataLoader(train_data_path, step_size=step_size, hist_length=hist)
     
     ensemble_model = trainer.train_ensemble_with_bagging(ensemble_model=ensemble_model,

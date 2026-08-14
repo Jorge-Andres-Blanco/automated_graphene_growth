@@ -1,4 +1,5 @@
 from pathlib import Path
+import yaml
 import h5py
 import torch
 import os
@@ -9,10 +10,12 @@ from src.models import DinoEncoder, EnsembleTransitionModel
 from src.utils.plotting import compare_images_in_latent_space, plot_possible_actions_losses
 from src.utils.evaluation import Evaluator
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]  
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 train_data_path = PROJECT_ROOT / "data_processing" / "training_data"
 validation_data_path = PROJECT_ROOT / "data_processing" / "validation_data"
+
+
 
 def main():
 
@@ -20,20 +23,20 @@ def main():
 
     hist = 1
     step_size = 45
-    hidden_dimension=1024
+    hidden_dimension=2048
     normalization="layer"
     activation="leaky_relu"
     ensemble_model = EnsembleTransitionModel(num_models=5,
                                                         latent_dim=384,
                                                         action_dim=1,
-                                                        hidden_dim=1024,
+                                                        hidden_dim=hidden_dimension,
                                                         normalization=normalization,
                                                         activation=activation,
                                                         num_hidden_layers=2,
                                                         step_size=step_size,
                                                         history=hist)
 
-    model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
+    model_name_prefix = PROJECT_ROOT / "models" / "transition" / f"mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
 
     
     # Training/calling the model

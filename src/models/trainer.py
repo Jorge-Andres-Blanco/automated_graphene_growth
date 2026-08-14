@@ -28,7 +28,7 @@ class Trainer:
         
         
         
-    def train_transition_model(self, model: 'TransitionModel', z_data: np.ndarray, a_data: np.ndarray, y_data: np.ndarray, save_model_as: str= "transition_model.pth") -> 'TransitionModel':
+    def train_transition_model(self, model: 'TransitionModel', z_data: np.ndarray, a_data: np.ndarray, y_data: np.ndarray, save_model_as: str|Path= "transition_model.pth") -> 'TransitionModel':
         
         """
         Trains the transition model on collected data.
@@ -133,7 +133,7 @@ class Trainer:
         return None
 
 
-    def train_ensemble_transition_model(self, data_loader: 'TransitionDataLoader', ensemble_model: 'EnsembleTransitionModel', save_prefix = ""):
+    def train_ensemble_transition_model(self, data_loader: 'TransitionDataLoader', ensemble_model: 'EnsembleTransitionModel', save_prefix: str | Path = ""):
 
         """
         Trains each model in the ensemble on the same data.
@@ -153,7 +153,10 @@ class Trainer:
         for i, model in enumerate(ensemble_model.models):
             print(f"Training model {i+1}/{ensemble_model.num_models}")
 
-            model_name = f"{save_prefix}_transition_model_{i}.pth" if save_prefix else f"transition_model_{i}.pth"
+            if isinstance(save_prefix, Path):
+                model_name = save_prefix / f"transition_model_{i}.pth" if save_prefix else f"transition_model_{i}.pth"
+            else:
+                model_name = f"{save_prefix}_transition_model_{i}.pth" if save_prefix else f"transition_model_{i}.pth"
 
             z_data, a_data, y_data = data_loader.load_full_dataset()
 

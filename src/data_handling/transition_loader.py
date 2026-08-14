@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import re
 from pathlib import Path
 
 class TransitionDataLoader:
@@ -14,8 +15,31 @@ class TransitionDataLoader:
         self.step_size = step_size
         self.hist_length = hist_length
         self.context_needed = hist_length * step_size
-        self.cls_files = sorted(self.folder_path.glob("*sequence*.npy"), key=lambda p: int(p.stem.split('_')[-1]))
-        self.CH4_files = sorted(self.folder_path.glob("*CH4*.npy"), key=lambda p: int(p.stem.split('_')[-1]))
+
+        # Sort files alphabetically by name
+        self.CH4_files = sorted(self.folder_path.glob("*CH4*.npy"), key=lambda p: p.name)
+        self.cls_files = sorted(self.folder_path.glob("*seq*.npy"), key=lambda p: p.name)
+
+        # Assert equal file counts
+        if len(self.CH4_files) != len(self.cls_files):
+            raise ValueError(
+                f"File count mismatch in {self.folder_path}: "
+                f"Found {len(self.CH4_files)} CH4 files and {len(self.cls_files)} sequence files."
+            )
+
+        # Assert precise 1-to-1 pair alignment (strip prefixes to compare identifiers)
+        for seq_p, ch4_p in zip(self.cls_files, self.CH4_files):
+            seq_id = re.sub(r'^(train|eval)_seq_', '', seq_p.name)
+            ch4_id = re.sub(r'^(train|eval)_CH4_', '', ch4_p.name)
+            
+            if seq_id != ch4_id:
+                raise ValueError(
+                    f"Data pairing misalignment detected!\n"
+                    f"  Sequence File: {seq_p.name}\n"
+                    f"  Measurement File: {ch4_p.name}\n"
+                    f"  Expected matching suffix: '{seq_id}' vs '{ch4_id}'"
+                )
+
         self.scene_indices = self.generate_scene_indices()
     
     def _get_npy_file_shape(self, file_path):

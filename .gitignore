@@ -17,5 +17,6 @@ verb*.txt
 env/
 logs/
 plots/
+models/
 videos/
 images_single_frames/

@@ -24,8 +24,8 @@ if __name__ == "__main__":
     
 
     hist = 1
-    step_size = 30
-    hidden_dimension=1024
+    step_size = 45
+    hidden_dimension=2048
     normalization="layer"
     activation="leaky_relu"
 
@@ -41,7 +41,7 @@ if __name__ == "__main__":
                                             step_size=step_size,
                                             history=hist)
 
-    model_name_prefix = PROJECT_ROOT.resolve().parent[1] / "models" / f"mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
+    model_name_prefix = PROJECT_ROOT / "models" / "transition" / f"mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
 
     # Load weights
     try:

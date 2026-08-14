@@ -12,6 +12,7 @@ from src.utils.evaluation import Evaluator
 import argparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+saved_models_dir = PROJECT_ROOT / "src" / "models" / "saved_transition_models"
 
 if __name__ == "__main__":
     
@@ -67,7 +68,7 @@ if __name__ == "__main__":
                                             step_size=step_size,
                                             history=hist)
 
-    model_name_prefix = f"/data/lmcat/Computer_vision/models/mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
+    model_name_prefix = saved_models_dir / f"mlp_activation_{activation}_norm_{normalization}_hist{hist}_step{step_size}_hiddim{hidden_dimension}"
 
     # Load weights
     try:

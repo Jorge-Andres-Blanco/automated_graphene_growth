@@ -43,14 +43,15 @@ def main():
         # Use the file's base name (without .h5) as the unique identifier
         base_name = Path(file_name).stem 
         
-        sequence_cls_path = intermediate_folder / f"{base_name}_scan{scan}_embeddings.npy"
-        save_seq_measurement_path = intermediate_folder / f"{base_name}_scan{scan}_{measurement}.npy"
+        file_scan_id = f"{base_name}_scan{scan}"
+        
+        sequence_cls_path = intermediate_folder / f"{file_scan_id}_embeddings.npy"
+        save_seq_measurement_path = intermediate_folder / f"{file_scan_id}_{measurement}.npy"
 
         sleep_time = 1 if "Gr_4_080426_camera_0001.h5" in file_name else 2
 
-        print(f"\n--- Processing & Partitioning: {base_name} ---")
+        print(f"\n--- Processing & Partitioning: {file_scan_id} ---")
 
-        # 1 & 2. Check if the file has already been encoded to skip redundant processing
         if sequence_cls_path.exists() and save_seq_measurement_path.exists():
             print("  -> Intermediate arrays found. Loading directly from disk...")
             measurement_data = np.load(save_seq_measurement_path)
@@ -75,7 +76,7 @@ def main():
         
         print(f"  -> Data Ready | Embeddings: {embeddings.shape} | {measurement}: {measurement_data.shape}")
 
-        # 3. Partition and Save Training Data
+        # Partition Training Data (incorporating file_scan_id)
         for chunk_idx, (start_idx, end_idx) in enumerate(train_ranges):
             if start_idx == end_idx:
                 continue
@@ -83,16 +84,15 @@ def main():
             train_seq = embeddings[start_idx:end_idx]
             train_ch4 = measurement_data[start_idx:end_idx]
             
-            # Name files using the source base_name for perfect traceability
             if train_seq.shape[0] > 0:
-                np.save(save_folder_training / f"train_seq_{base_name}_chunk{chunk_idx}.npy", train_seq)
-                print(f"  -> Saved train sequence chunk {chunk_idx} [{start_idx}:{end_idx}]")
+                np.save(save_folder_training / f"train_seq_{file_scan_id}_chunk{chunk_idx}.npy", train_seq)
+                print(f"  -> Saved train sequence: train_seq_{file_scan_id}_chunk{chunk_idx}.npy")
                 
             if train_ch4.shape[0] > 0:
-                np.save(save_folder_training / f"train_{measurement}_{base_name}_chunk{chunk_idx}.npy", train_ch4)
-                print(f"  -> Saved train {measurement} chunk {chunk_idx} [{start_idx}:{end_idx}]")
+                np.save(save_folder_training / f"train_{measurement}_{file_scan_id}_chunk{chunk_idx}.npy", train_ch4)
+                print(f"  -> Saved train {measurement}: train_{measurement}_{file_scan_id}_chunk{chunk_idx}.npy")
 
-        # 4. Partition and Save Validation Data
+        # Partition Validation Data (incorporating file_scan_id)
         for chunk_idx, (start_idx, end_idx) in enumerate(val_ranges):
             if start_idx == end_idx:
                 continue
@@ -101,12 +101,12 @@ def main():
             eval_ch4 = measurement_data[start_idx:end_idx]
             
             if eval_seq.shape[0] > 0:
-                np.save(save_folder_validation / f"eval_seq_{base_name}_chunk{chunk_idx}.npy", eval_seq)
-                print(f"  -> Saved eval sequence chunk {chunk_idx} [{start_idx}:{end_idx}]")
+                np.save(save_folder_validation / f"eval_seq_{file_scan_id}_chunk{chunk_idx}.npy", eval_seq)
+                print(f"  -> Saved eval sequence: eval_seq_{file_scan_id}_chunk{chunk_idx}.npy")
                 
             if eval_ch4.shape[0] > 0:
-                np.save(save_folder_validation / f"eval_{measurement}_{base_name}_chunk{chunk_idx}.npy", eval_ch4)
-                print(f"  -> Saved eval {measurement} chunk {chunk_idx} [{start_idx}:{end_idx}]")
+                np.save(save_folder_validation / f"eval_{measurement}_{file_scan_id}_chunk{chunk_idx}.npy", eval_ch4)
+                print(f"  -> Saved eval {measurement}: eval_{measurement}_{file_scan_id}_chunk{chunk_idx}.npy")
 
     print("\nExtraction and Partitioning Pipeline Complete.")
 
