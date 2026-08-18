@@ -372,7 +372,7 @@ class EnsembleTransitionModel(nn.Module):
                 model.load_state_dict(torch.load(f"{model_name_prefix}_transition_model_{i}.pth"))
     
         except FileNotFoundError:
-            print(f"Model {i} not found")
+            raise FileNotFoundError(f"Model {i} not found at {model_name_prefix}_transition_model_{i}.pth")
 
     
     

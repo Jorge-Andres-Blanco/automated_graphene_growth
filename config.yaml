@@ -1,13 +1,13 @@
 # ==========================================
 # EXECUTION & HARDWARE CONFIGURATION
 # ==========================================
-execution:
-  model_directory: "/data/lmcat/Computer_vision/models"
+execution:          # Update these when you promote a new model
+  model_directory: "/data/lmcat/Computer_vision/automated_graphene_growth/src/models/saved_transition_models/20260616"
   active_model:
     num_models: 5
-    latent_dim: 384
-    action_dim: 1
-    activation: "relu"           # Update these when you promote a new model
+    latent_dim: 384       # fixed — DINOv2 ViT-S/14 output dim
+    action_dim: 1          # fixed — CH4 flow is the only action
+    activation: "relu"
     normalization: "layer"
     history_size: 4
     step_size: 1

@@ -2,14 +2,14 @@
 
 Code for a closed-loop control system (DINO-WM) that drives the LMCat reactor at
 ID10-SURF (ESRF) toward a target graphene morphology, using in-situ optical microscopy
-images and the methane flow rate as the control action. A frozen DINOv2 encoder compresses
+images and the methane flow rate as the control action. A DINOv2 encoder compresses
 frames into a 384-d latent space, a trained MLP ensemble (the "transition model") predicts
 how that latent state evolves under a given CH₄ flow, and an action planner searches flow
-sequences that minimise the latent distance to a target image.
+sequences that minimize the latent distance to a target image.
 
 For the physics, methodology, and discussion of results/limitations, see the accompanying
 thesis: *"Towards Autonomous Control of CVD Graphene Synthesis on Liquid Metal Catalysts: A
-Deep-Learning-Based Computer Vision Approach"* (J. Blanco, 2026). This README covers only
+Deep-Learning-Based Computer Vision Approach"*. This README covers only
 the code: how it's organised and how to run it.
 
 ---
@@ -40,8 +40,6 @@ the code: how it's organised and how to run it.
 │   │   └── build_and_partition_data.py     # DINOv2 inference + train/val split (Procedure 1)
 │   ├── training/
 │   │   ├── train_ensemble_model.py         # canonical training entry point (Procedure 2)
-│   │   ├── ensemble_model_main.py          # older/alternate training+eval sandbox script
-│   │   └── run_hyperpars_on_sequences.sh   # stale — points at a script that no longer exists
 │   ├── evaluation/
 │   │   ├── compare_frames_for_transition.py    # transition analysis, thesis §4.1 (Procedure 3)
 │   │   ├── evaluate_hyperpars_on_trajectory.py # hyperparameter sweep over hist/step_size
@@ -57,16 +55,16 @@ the code: how it's organised and how to run it.
 │       └── functions_online_testing.py     # shared loop bodies used by the scripts above
 └── src/
     ├── models/
-    │   ├── dinov2_encoder.py   # DinoEncoder — frozen, inference only
+    │   ├── dinov2_encoder.py   # DinoEncoder — inference only
     │   ├── transition.py       # TransitionModel, EnsembleTransitionModel
     │   └── trainer.py          # Trainer — bagging, checkpoint saving
     ├── data_handling/
     │   ├── hdf5_processor.py     # HDF5Processor — reads .h5, runs DINO, applies crop_index
     │   └── transition_loader.py # TransitionDataLoader — builds (z, a, y) windows from .npy files
     ├── controllers/
-    │   └── cem_planner.py   # CEMPlanner — wraps the ensemble's action search (see §10 note)
+    │   └── cem_planner.py   # action planner, is not CEM — wraps the ensemble's action search (see §10 note)
     ├── environment/
-    │   ├── environment.py            # ReactorEnv — observe()/act() facade
+    │   ├── environment.py            # ReactorEnv — observe()/act()
     │   └── LMCat_control/
     │       ├── controller.py  # Controller — blissclient RPC calls (set_flow_CH4, etc.)
     │       └── observer.py    # Observer — blissdata stream reads (Image, CH4, ...)
@@ -100,13 +98,11 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-* GPU recommended — the DINOv2 pass over a multi-hour recording is the expensive step;
-  training the MLP ensemble afterwards is cheap.
+* GPU recommended — the DINOv2 inference is the expensive step, training the MLP ensemble afterwards is cheap. It is recommended to   run all scripts from a visa instance from ESRF. One can clone the repository as well as the environment in a directory that is accessible to everyone. That way the installation doesn't have to be repeated everytime a visa instance is created
 * `DinoEncoder` pulls `dinov2_vits14_reg` from `facebookresearch/dinov2` via `torch.hub` on
   first use. Needs internet (or a pre-populated `torch.hub` cache) the first time it runs.
 * `blissclient` / `blissdata` are only needed for [Procedure 5](#8-procedure-5--execute-the-model-on-the-reactor)
-  — they connect to `lid10lmcatctrl`, i.e. they only work on the beamline control network.
-  Data prep, training, and offline evaluation run anywhere.
+  — they connect to `lid10lmcatctrl`, i.e. they only work on ESRF network (including visa instances). I think the same happens with Data prep, as it needs to access the raw data from the experiments. Training, and offline evaluation run anywhere.
 
 ---
 
@@ -116,7 +112,7 @@ pip install -r requirements.txt
 
 ```yaml
 execution:
-  model_directory: "/data/lmcat/Computer_vision/models"
+  model_directory: "/data/lmcat/Computer_vision/automated_graphene_growth/src/models/saved_transition_models/20260616"
   active_model:
     num_models: 5
     latent_dim: 384       # fixed — DINOv2 ViT-S/14 output dim
@@ -314,9 +310,7 @@ per-transition plot.
    ```
 
    or by calling `load_model_from_yaml_config(config_path)` directly — a missing/misnamed
-   file raises inside `EnsembleTransitionModel.load_ensemble` (it prints `Model {i} not
-   found` but does **not** raise, so a silently-empty/untrained model can otherwise go
-   unnoticed — always check the console output).
+   file should directly raise an error.
 
 There is no validation that the config's architecture matches what's actually inside the
 `.pth` file; a shape mismatch surfaces as a `RuntimeError` from `load_state_dict`, but a
@@ -349,7 +343,7 @@ python -m scripts.execution.run_reactor_active_learning  # uncertainty-maximisin
   (L2 distance below a threshold and cosine similarity > 0.85 — see that file for the exact
   stopping rule and the 3-consecutive-agreeing-predictions actuation filter).
 * **`hold_equilibrium_in_reactor.py`** — target is whatever the reactor looks like *right
-  now* at start-up; the planner is asked to hold it there (`action_space="closer_7"`,
+  at start-up*; the planner is asked to hold it there (`action_space="closer_7"`,
   i.e. flow candidates near the current flow rather than the full 0–9 sccm grid).
 * **`run_reactor_active_learning.py`** — no target; calls
   `CEMPlanner.get_highest_variance_action` each step, applying the flow that maximises
