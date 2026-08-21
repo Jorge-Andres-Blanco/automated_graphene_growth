@@ -35,7 +35,7 @@ if __name__ == "__main__":
                                                     history=hist)
 
     # To be changed according to the executing machine
-    trainer = Trainer(lr=1e-3, batch_size=64, epochs=10)
+    trainer = Trainer(lr=1e-3, batch_size=64, epochs=5)
     train_data_loader = TransitionDataLoader(train_data_path, step_size=step_size, hist_length=hist)
     
     ensemble_model = trainer.train_ensemble_with_bagging(ensemble_model=ensemble_model,

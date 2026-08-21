@@ -123,3 +123,10 @@ data_files:
     crop_index: [0:3600]
     training_ranges: [[0,200], [800, -1]]
     validation_ranges: [[200, 800]]
+
+  - path: "/data/lmcat/inhouse/20260817/ihma888/id10-surf/20260801/RAW_DATA/Gr_3_210826_camera/Gr_3_210826_camera_0001/"
+    file_name: "Gr_3_210826_camera_0001.h5"
+    scan_number: 1
+    crop_index: null
+    training_ranges: [[0,-1]]
+    validation_ranges: []

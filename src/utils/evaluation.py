@@ -582,7 +582,7 @@ class Evaluator:
         with torch.no_grad():
             losses, actions_evaluated = model.predict_action_losses(
                 planning_horizon=horizon, 
-                z_init=torch.tensor([z0], dtype=torch.float32).to(self.device), 
+                z_init=torch.from_numpy(z0).float().unsqueeze(0).to(self.device), 
                 a_init=torch.tensor([a0], dtype=torch.float32).to(self.device),
                 a_pos="all", 
                 target=torch.tensor(z1, dtype=torch.float32).to(self.device)
