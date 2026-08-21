@@ -645,7 +645,8 @@ class Evaluator:
             axes[1, 1].set_xlabel(x_flow_plot_label, fontsize=18)
             axes[1, 1].set_ylim(0, max(np.max(actual_flow_sequence) * 1.1, 1.0))
         
-        if  len(predicted_flow_sequence) > 1:
+        #if  len(predicted_flow_sequence) > 1:
+        if False: # We don't want to plot the predictions for the moment
             
             axes[1, 1].plot(x_flow_plot, predicted_flow_sequence, marker='x', color='darkblue', linewidth=2, linestyle='--', label="Predicted Flow")
             max_y = max(max_y, np.max(predicted_flow_sequence))

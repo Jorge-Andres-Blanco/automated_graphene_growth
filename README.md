@@ -368,13 +368,13 @@ script — `Controller` calls them by name over RPC and the call fails if they'r
 def set_flow_CH4(F):
     Flow.CH4 = F
 
-def set_flow_Ar(F):
+def set_flow_Ar(F): #Optional, not necessary
     Flow.Ar = F
 
-def set_flow_H2(F):
+def set_flow_H2(F): #Optional, not necessary
     Flow.H2 = F
 
-def set_reactor_pressure(P):
+def set_reactor_pressure(P): #Optional, not necessary
     Flow.Pressure = P
 ```
 

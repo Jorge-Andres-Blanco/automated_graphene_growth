@@ -14,7 +14,7 @@ config_path = PROJECT_ROOT / "config.yaml"
 def main():
     # --- Setup ---
     config = load_yaml_config(config_path)
-    step_size = config['execution']['step_size']
+    step_size = config['execution']['active_model']['step_size']
     print("Booting up Autonomous Graphene Control System...")
     log_file = f"active_learning_log_{time.strftime('%Y%m%d-%H%M')}.csv"
     log_file_path = PROJECT_ROOT / "logs" / log_file
@@ -25,7 +25,9 @@ def main():
     transition_model = load_model_from_yaml_config(config_path)
 
     # Initialize the brain
-    planner = CEMPlanner(transition_model=transition_model, horizon=2)
+    horizon = 3  # You can adjust this based on your needs
+    wait_steps = 1  # Time to wait after each action, also reaction time
+    planner = CEMPlanner(transition_model=transition_model, horizon=horizon)
 
     # --- The Control Loop ---
     print("Starting learning loop...")
@@ -53,8 +55,8 @@ def main():
         
         state = env.act(ch4_action=new_ch4_flow)
 
-        print(f"Sleeping {step_size*2} seconds (step size)")
-        time.sleep(step_size*2)
+        print(f"Sleeping {step_size*wait_steps} seconds (step size)")
+        time.sleep(step_size*wait_steps)
 
     print("Autonomous learning loop has ended. Please check the log file for details and review")
 

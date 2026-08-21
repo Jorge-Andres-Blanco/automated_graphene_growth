@@ -12,7 +12,7 @@ from src.utils.evaluation import Evaluator
 import argparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-saved_models_dir = PROJECT_ROOT / "src" / "models" / "saved_transition_models"
+saved_models_dir = PROJECT_ROOT / "src" / "models" / "saved_transition_models" / "20260616"
 
 if __name__ == "__main__":
     
@@ -77,7 +77,8 @@ if __name__ == "__main__":
             print(f"model {i} loaded")
     except FileNotFoundError:
             print(f"Model {i} not found")
-       
+            raise FileNotFoundError(f"Model {i} not found. Please ensure the model files are present in {saved_models_dir}")
+    
     # Create video frames from logs
     saved_images, temp_dir = generate_video_frames_from_logs(
         csv_log_path=log_path,

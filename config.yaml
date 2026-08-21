@@ -7,11 +7,11 @@ execution:          # Update these when you promote a new model
     num_models: 5
     latent_dim: 384       # fixed — DINOv2 ViT-S/14 output dim
     action_dim: 1          # fixed — CH4 flow is the only action
-    activation: "relu"
+    activation: "leaky_relu"
     normalization: "layer"
-    history_size: 4
-    step_size: 1
-    hidden_dimension: 256
+    history_size: 1
+    step_size: 45
+    hidden_dimension: 1024
     num_hidden_layers: 2
 
 
@@ -109,3 +109,17 @@ data_files:
     crop_index: null
     training_ranges: [[0, -1]]
     validation_ranges: []
+
+  - path: "/data/lmcat/inhouse/20260817/ihma888/id10-surf/20260801/RAW_DATA/Gr_1_180826_camera/Gr_1_180826_camera_0001/"
+    file_name: "Gr_1_180826_camera_0001.h5"
+    scan_number: 1
+    crop_index: [0:2400]
+    training_ranges: [[0, -1]]
+    validation_ranges: []
+
+  - path: "/data/lmcat/inhouse/20260817/ihma888/id10-surf/20260801/RAW_DATA/Gr_1_180826_camera/Gr_1_180826_camera_0001/"
+    file_name: "Gr_1_180826_camera_0001.h5"
+    scan_number: 2
+    crop_index: [0:3600]
+    training_ranges: [[0,200], [800, -1]]
+    validation_ranges: [[200, 800]]
